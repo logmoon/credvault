@@ -28,7 +28,7 @@
       "node_modules/**",
       "dist/**",
       ".git/**",
-      ".skills/**"
+	  ".opencode/skills/**"
     ]
   },
   "mcp": {

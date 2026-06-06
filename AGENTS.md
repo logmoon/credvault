@@ -43,10 +43,21 @@ Never skip steps 1 and 8. Context loss between sessions is the primary source of
 | `context/build-plan.md` | Phased feature list — numbered, ordered, with sub-tasks |
 | `context/progress-tracker.md` | Live checklist — what's done, in progress, next |
 | `context/code-standards.md` | Naming, structure, error handling, patterns |
-| `context/library-docs.md` | Project-specific usage patterns for every third-party library. Add `use context7` to prompts for live docs. |
+| `context/library-docs.md` | Project-specific usage patterns for every third-party library. Context7 is configured — fetch live docs automatically before using any library. |
 | `context/ui-tokens.md` | Design tokens — all colors, spacing, typography. Never hardcode values. |
 | `context/ui-rules.md` | Layout, component patterns, do-nots |
 | `context/ui-registry.md` | Living record of built components — read before building any new one |
+
+---
+
+## Library Docs — Context7
+
+This project has Context7 configured as an MCP server. Whenever you are about to write code that uses a third-party library, call the Context7 MCP tool first to resolve the library ID and fetch current documentation. Do this automatically — do not wait to be asked. Relying on training-data knowledge for library APIs leads to outdated patterns and bugs.
+
+Workflow:
+1. Resolve the library: `mcp__context7__resolve-library-id({ libraryName: "..." })`
+2. Fetch the relevant docs: `mcp__context7__get-library-docs({ context7CompatibleLibraryId: "...", topic: "..." })`
+3. Then write the code
 
 ---
 
@@ -56,10 +67,11 @@ Never skip steps 1 and 8. Context loss between sessions is the primary source of
 memory.md + progress-tracker → architecture.md invariants → code-standards.md → library-docs.md → general knowledge
 ```
 
-Never rely on general training knowledge for library APIs — they change. Use `use context7` in your prompt and check library-docs.md first.
+Never rely on general training knowledge for library APIs — they change. Always check library-docs.md and use Context7 to fetch live docs before using any library.
 
 ---
 
 ## Invariants
 
 _See `context/architecture.md` — Invariants section._
+

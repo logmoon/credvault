@@ -1,0 +1,28 @@
+# Rust / Tauri
+src-tauri/target/
+src-tauri/Cargo.lock
+
+# Node / Vite
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# Temp files
+*.tmp
