@@ -43,8 +43,9 @@ export function LockScreen() {
     setSubmitting(true);
     setError('');
     try {
+      // unlock_vault caches the derived key in Rust SessionState
       const entries = await unlockVault(password, vaultPath);
-      setUnlocked(entries, password);
+      setUnlocked(entries);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       setError(capitalize(message));
@@ -64,7 +65,7 @@ export function LockScreen() {
     try {
       await createVault(password, vaultPath);
       const entries = await unlockVault(password, vaultPath);
-      setUnlocked(entries, password);
+      setUnlocked(entries);
     } catch {
       setError('Failed to create vault');
     } finally {
@@ -142,8 +143,8 @@ export function LockScreen() {
                   value={confirmPassword}
                   onChange={e => { setConfirmPassword(e.target.value); setError(''); }}
                   onKeyDown={handleKeyDown}
-                className="w-full font-mono bg-surface border border-white/12 rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
-                placeholder="Re-enter master password"
+                  className="w-full font-mono bg-surface border border-white/12 rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
+                  placeholder="Re-enter master password"
                 />
                 <button
                   type="button"

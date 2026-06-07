@@ -10,7 +10,7 @@ const CURRENT_VERSION: u8 = 1;
 const HEADER_SIZE: usize = 44;
 
 /// Plaintext header of a vault file (44 bytes).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VaultHeader {
     pub version: u8,
     pub argon2_salt: [u8; 16],

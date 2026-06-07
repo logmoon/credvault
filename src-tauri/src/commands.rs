@@ -2,8 +2,30 @@ use crate::crypto;
 use crate::generator;
 use crate::vault;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use zeroize::Zeroizing;
 use tauri::Manager;
 use uuid::Uuid;
+
+/// In-memory session state held after unlock, cleared on lock.
+/// Caches the derived key and vault metadata so saves skip Argon2 entirely.
+pub struct VaultSession {
+    pub key: Zeroizing<[u8; 32]>,
+    pub header: vault::VaultHeader,
+    pub body_meta: VaultBodyMeta,
+    pub path: PathBuf,
+}
+
+/// The parts of VaultBody that saves don't modify — cached so we never
+/// need to re-read+decrypt the file just to preserve them.
+pub struct VaultBodyMeta {
+    pub schema_version: u32,
+    pub vault_id: String,
+    pub created_at: u64,
+    pub deleted_entry_ids: Vec<String>,
+}
+
+pub struct SessionState(pub Mutex<Option<VaultSession>>);
 
 #[tauri::command]
 pub fn create_vault(password: String, path: String) -> Result<(), String> {
@@ -45,55 +67,88 @@ pub fn create_vault(password: String, path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn unlock_vault(password: String, path: String) -> Result<Vec<vault::Entry>, String> {
+pub fn unlock_vault(
+    password: String,
+    path: String,
+    state: tauri::State<SessionState>,
+) -> Result<Vec<vault::Entry>, String> {
     let path = PathBuf::from(&path);
 
     let (header, payload) = vault::read_vault(&path).map_err(|e| e.to_string())?;
     let (nonce, ciphertext, tag) = vault::split_payload(&payload).map_err(|e| e.to_string())?;
 
-    let key =
-        crypto::derive_key(&password, &header.argon2_salt, &header.argon2_params)
-            .map_err(|e| e.to_string())?;
+    // Argon2 runs here — once on unlock, never again until next lock/unlock
+    let key = crypto::derive_key(&password, &header.argon2_salt, &header.argon2_params)
+        .map_err(|e| e.to_string())?;
 
     let plaintext = crypto::decrypt(&key, nonce, ciphertext, tag).map_err(|e| e.to_string())?;
-
     let body: vault::VaultBody =
         serde_json::from_slice(&plaintext).map_err(|e| e.to_string())?;
 
-    Ok(body.entries)
+    let entries = body.entries.clone();
+
+    // Cache key + metadata for the session
+    let mut session = state.0.lock().map_err(|e| e.to_string())?;
+    *session = Some(VaultSession {
+        key,
+        header,
+        body_meta: VaultBodyMeta {
+            schema_version: body.schema_version,
+            vault_id: body.vault_id,
+            created_at: body.created_at,
+            deleted_entry_ids: body.deleted_entry_ids,
+        },
+        path,
+    });
+
+    Ok(entries)
 }
 
 #[tauri::command]
-pub fn save_vault(
-    password: String,
-    path: String,
+pub fn lock_vault(state: tauri::State<SessionState>) -> Result<(), String> {
+    let mut session = state.0.lock().map_err(|e| e.to_string())?;
+    *session = None;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn save_vault(
     entries: Vec<vault::Entry>,
+    state: tauri::State<'_, SessionState>,
 ) -> Result<(), String> {
-    let path = PathBuf::from(&path);
+    let (key, header, body_meta, path) = {
+        let session = state.0.lock().map_err(|e| e.to_string())?;
+        let s = session.as_ref().ok_or("Vault is not unlocked")?;
+        (
+            s.key.clone(),
+            s.header.clone(),
+            VaultBodyMeta {
+                schema_version: s.body_meta.schema_version,
+                vault_id: s.body_meta.vault_id.clone(),
+                created_at: s.body_meta.created_at,
+                deleted_entry_ids: s.body_meta.deleted_entry_ids.clone(),
+            },
+            s.path.clone(),
+        )
+    };
 
-    let (header, payload) = vault::read_vault(&path).map_err(|e| e.to_string())?;
-    let (nonce, ciphertext, tag) = vault::split_payload(&payload).map_err(|e| e.to_string())?;
-
-    let key =
-        crypto::derive_key(&password, &header.argon2_salt, &header.argon2_params)
-            .map_err(|e| e.to_string())?;
-
-    let plaintext = crypto::decrypt(&key, nonce, ciphertext, tag).map_err(|e| e.to_string())?;
-
-    let mut body: vault::VaultBody =
-        serde_json::from_slice(&plaintext).map_err(|e| e.to_string())?;
-
-    body.entries = entries;
-    body.modified_at = vault::now_timestamp();
+    // No Argon2, no disk read, no decrypt — straight to encrypt + write
+    let body = vault::VaultBody {
+        schema_version: body_meta.schema_version,
+        vault_id: body_meta.vault_id,
+        created_at: body_meta.created_at,
+        modified_at: vault::now_timestamp(),
+        entries,
+        deleted_entry_ids: body_meta.deleted_entry_ids,
+    };
 
     let json = serde_json::to_vec(&body).map_err(|e| e.to_string())?;
-    let (new_nonce, new_ciphertext, new_tag) =
-        crypto::encrypt(&key, &json).map_err(|e| e.to_string())?;
+    let (nonce, ciphertext, tag) = crypto::encrypt(&key, &json).map_err(|e| e.to_string())?;
 
     let mut vault_bytes = vault::write_vault_header(&header);
-    vault_bytes.extend_from_slice(&new_nonce);
-    vault_bytes.extend_from_slice(&new_ciphertext);
-    vault_bytes.extend_from_slice(&new_tag);
+    vault_bytes.extend_from_slice(&nonce);
+    vault_bytes.extend_from_slice(&ciphertext);
+    vault_bytes.extend_from_slice(&tag);
     vault::atomic_write(&path, &vault_bytes).map_err(|e| e.to_string())?;
 
     Ok(())

@@ -9,7 +9,6 @@ export default {
           DEFAULT: '#E8600A',
           dark: '#C4500A',
           light: '#FF7A28',
-          muted: '#E8600A66',
         },
         surface: {
           window: '#141414',

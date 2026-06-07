@@ -9,8 +9,12 @@ export async function unlockVault(password: string, path: string): Promise<Entry
   return invoke<Entry[]>('unlock_vault', { password, path });
 }
 
-export async function saveVault(password: string, path: string, entries: Entry[]): Promise<void> {
-  return invoke<void>('save_vault', { password, path, entries });
+export async function lockVault(): Promise<void> {
+  return invoke<void>('lock_vault');
+}
+
+export async function saveVault(entries: Entry[]): Promise<void> {
+  return invoke<void>('save_vault', { entries });
 }
 
 export async function generatePassword(length: number, opts: GeneratorOpts): Promise<string> {

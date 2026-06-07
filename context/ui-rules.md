@@ -16,7 +16,7 @@
 - **Desktop:** No visible nav bar or tabs. The two-column layout is always present once unlocked. A lock button sits in the top-right of the left sidebar. The app name sits in the top-left of the left sidebar in muted text.
 - **Mobile:** Bottom tab bar — three tabs: a vault icon (entry list), a plus icon (add entry), a settings icon. Active tab icon uses the accent color (`#E8600A`). Inactive tabs use `text.muted`.
 - **Lock button:** Always reachable. On desktop: top-right of the sidebar. On mobile: top-right of the vault tab header.
-- **Active states:** Selected entry row uses the accent-muted background tint. No underlines, no bold weight changes for active nav items — color alone distinguishes active state.
+- **Active states:** Selected entry row uses a neutral background tint (`surface-hover`) with a 2px accent-orange left border. No underlines, no bold weight changes for active nav items — background and border alone distinguish active state.
 
 ---
 

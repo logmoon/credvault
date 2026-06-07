@@ -7,9 +7,11 @@ type EntryListProps = {
   onSelect: (id: string) => void;
   onCopyUsername: (id: string) => void;
   onCopyPassword: (id: string) => void;
+  onOpenUrl: (url: string) => void;
+  isValidUrl: (url: string) => boolean;
 };
 
-export function EntryList({ entries, selectedId, onSelect, onCopyUsername, onCopyPassword }: EntryListProps) {
+export function EntryList({ entries, selectedId, onSelect, onCopyUsername, onCopyPassword, onOpenUrl, isValidUrl }: EntryListProps) {
   if (entries.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center px-4">
@@ -31,6 +33,8 @@ export function EntryList({ entries, selectedId, onSelect, onCopyUsername, onCop
           onSelect={onSelect}
           onCopyUsername={onCopyUsername}
           onCopyPassword={onCopyPassword}
+          onOpenUrl={onOpenUrl}
+          isValidUrl={isValidUrl}
         />
       ))}
     </div>

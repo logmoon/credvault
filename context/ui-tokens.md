@@ -6,10 +6,9 @@
 
 | Token | Hex | Usage |
 |---|---|---|
-| `accent.DEFAULT` | `#E8600A` | Primary buttons, active states, focus rings, key highlights |
+| `accent.DEFAULT` | `#E8600A` | Primary buttons, active states, focus rings, key highlights, selected row left border |
 | `accent.dark` | `#C4500A` | Button hover state |
 | `accent.light` | `#FF7A28` | Accent on dark surfaces when full orange is too heavy |
-| `accent.muted` | `#E8600A66` | Selected row background (40% opacity accent) |
 
 ### Backgrounds
 
@@ -104,11 +103,11 @@ Base unit: **4px**. All spacing uses multiples of 4.
 
 ### Entry Rows
 
-| State | Background |
+| State | Style |
 |---|---|
-| Default | transparent |
-| Hover | `rgba(255,255,255,0.05)` |
-| Selected / active | `rgba(232,96,10,0.10)` (accent muted) |
+| Default | transparent background, `2px` transparent left border |
+| Hover | `rgba(255,255,255,0.05)` background |
+| Selected / active | `rgba(255,255,255,0.05)` background, `2px` `#E8600A` left border |
 | Border radius | `6px` |
 | Padding | `10px 12px` |
 | Height | `56px` (two-line: title + username) |

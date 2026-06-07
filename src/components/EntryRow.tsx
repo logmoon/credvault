@@ -1,4 +1,4 @@
-import { User, Key } from 'lucide-react';
+import { User, Key, ExternalLink } from 'lucide-react';
 import { type Entry } from '../lib/types';
 
 type EntryRowProps = {
@@ -7,14 +7,16 @@ type EntryRowProps = {
   onSelect: (id: string) => void;
   onCopyUsername: (id: string) => void;
   onCopyPassword: (id: string) => void;
+  onOpenUrl: (url: string) => void;
+  isValidUrl: (url: string) => boolean;
 };
 
-export function EntryRow({ entry, isSelected, onSelect, onCopyUsername, onCopyPassword }: EntryRowProps) {
+export function EntryRow({ entry, isSelected, onSelect, onCopyUsername, onCopyPassword, onOpenUrl, isValidUrl }: EntryRowProps) {
   return (
     <div
-      onClick={() => onSelect(entry.id)}
-      className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors ${
-        isSelected ? 'bg-accent-muted' : 'hover:bg-surface-hover'
+      onClick={e => { e.stopPropagation(); onSelect(entry.id); }}
+      className={`flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-colors border-l-2 ${
+        isSelected ? 'bg-surface-raised border-accent' : 'border-transparent hover:bg-surface-hover'
       }`}
     >
       <div className="flex-1 min-w-0 mr-2">
@@ -38,6 +40,16 @@ export function EntryRow({ entry, isSelected, onSelect, onCopyUsername, onCopyPa
         >
           <Key size={16} />
         </button>
+        {entry.url && isValidUrl(entry.url) && (
+          <button
+            onClick={() => onOpenUrl(entry.url!)}
+            className="p-2 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary"
+            aria-label="Open URL"
+            title="Open URL"
+          >
+            <ExternalLink size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

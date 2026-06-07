@@ -1,51 +1,12 @@
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { type Entry } from '../lib/types';
-
-const MOCK_ENTRIES: Entry[] = [
-  {
-    id: 'mock-1',
-    createdAt: Date.now() - 86400000 * 30,
-    modifiedAt: Date.now() - 86400000 * 2,
-    title: 'Work Gmail',
-    username: 'alice@company.com',
-    password: 'mock-password-1',
-    url: 'https://mail.google.com',
-  },
-  {
-    id: 'mock-2',
-    createdAt: Date.now() - 86400000 * 20,
-    modifiedAt: Date.now() - 86400000 * 5,
-    title: 'GitHub',
-    username: 'alice-dev',
-    password: 'mock-password-2',
-    url: 'https://github.com',
-  },
-  {
-    id: 'mock-3',
-    createdAt: Date.now() - 86400000 * 15,
-    modifiedAt: Date.now() - 86400000 * 1,
-    title: 'AWS Console',
-    username: 'alice@company.com',
-    password: 'mock-password-3',
-    url: 'https://console.aws.amazon.com',
-  },
-  {
-    id: 'mock-4',
-    createdAt: Date.now() - 86400000 * 7,
-    modifiedAt: Date.now() - 86400000 * 7,
-    title: 'DigitalOcean',
-    username: 'alice@company.com',
-    password: 'mock-password-4',
-    url: 'https://cloud.digitalocean.com',
-  },
-];
+import { saveVault, lockVault as lockVaultIpc } from '../lib/ipc';
 
 type VaultState = {
   locked: boolean;
   entries: Entry[] | null;
-  isDirty: boolean;
   lockVault: () => void;
-  unlockVault: (entries: Entry[], password: string) => void;
+  unlockVault: (entries: Entry[]) => void;
   addEntry: (entry: Entry) => void;
   updateEntry: (id: string, fields: Partial<Entry>) => void;
   deleteEntry: (id: string) => void;
@@ -56,60 +17,92 @@ const VaultContext = createContext<VaultState | null>(null);
 export function VaultProvider({ children }: { children: ReactNode }) {
   const [locked, setLocked] = useState(true);
   const [entries, setEntries] = useState<Entry[] | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
-  const passwordRef = useRef<string | null>(null);
+  const entriesRef = useRef<Entry[] | null>(null);
+  const savePromiseRef = useRef<Promise<void> | null>(null);
+  const pendingSaveRef = useRef(false);
+
+  const triggerSave = useCallback(async () => {
+    const doSave = async () => {
+      const currentEntries = entriesRef.current;
+      if (!currentEntries) return;
+
+      try {
+        await saveVault(currentEntries);
+      } catch {
+        console.error('Vault save failed');
+      }
+
+      if (pendingSaveRef.current) {
+        pendingSaveRef.current = false;
+        await doSave();
+      }
+    };
+
+    if (savePromiseRef.current) {
+      pendingSaveRef.current = true;
+    } else {
+      savePromiseRef.current = doSave().finally(() => {
+        savePromiseRef.current = null;
+      });
+    }
+  }, []);
 
   const lockVault = useCallback(() => {
     setEntries(null);
     setLocked(true);
-    setIsDirty(false);
-    passwordRef.current = null;
+    entriesRef.current = null;
+    lockVaultIpc().catch(() => console.error('Failed to clear server session'));
   }, []);
 
-  const unlockVault = useCallback((unlockedEntries: Entry[], password: string) => {
-    setEntries(unlockedEntries.length > 0 ? unlockedEntries : MOCK_ENTRIES);
+  // password and vaultPath are no longer needed on the frontend —
+  // the backend caches the derived key in SessionState after unlock
+  const unlockVault = useCallback((unlockedEntries: Entry[]) => {
+    setEntries(unlockedEntries);
+    entriesRef.current = unlockedEntries;
     setLocked(false);
-    setIsDirty(false);
-    passwordRef.current = password;
   }, []);
 
   const addEntry = useCallback((entry: Entry) => {
     setEntries(prev => {
-      if (!prev) return [entry];
-      return [...prev, entry];
+      const next = prev ? [...prev, entry] : [entry];
+      entriesRef.current = next;
+      return next;
     });
-    setIsDirty(true);
-  }, []);
+    queueMicrotask(() => triggerSave());
+  }, [triggerSave]);
 
   const updateEntry = useCallback((id: string, fields: Partial<Entry>) => {
     setEntries(prev => {
       if (!prev) return prev;
-      return prev.map(e => e.id === id ? { ...e, ...fields, modifiedAt: Date.now() } : e);
+      const next = prev.map(e => e.id === id ? { ...e, ...fields, modifiedAt: Date.now() } : e);
+      entriesRef.current = next;
+      return next;
     });
-    setIsDirty(true);
-  }, []);
+    queueMicrotask(() => triggerSave());
+  }, [triggerSave]);
 
   const deleteEntry = useCallback((id: string) => {
     setEntries(prev => {
       if (!prev) return prev;
-      return prev.filter(e => e.id !== id);
+      const next = prev.filter(e => e.id !== id);
+      entriesRef.current = next;
+      return next;
     });
-    setIsDirty(true);
-  }, []);
+    queueMicrotask(() => triggerSave());
+  }, [triggerSave]);
+
+  const value = useMemo(() => ({
+    locked,
+    entries,
+    lockVault,
+    unlockVault,
+    addEntry,
+    updateEntry,
+    deleteEntry,
+  }), [locked, entries, lockVault, unlockVault, addEntry, updateEntry, deleteEntry]);
 
   return (
-    <VaultContext.Provider
-      value={{
-        locked,
-        entries,
-        isDirty,
-        lockVault,
-        unlockVault,
-        addEntry,
-        updateEntry,
-        deleteEntry,
-      }}
-    >
+    <VaultContext.Provider value={value}>
       {children}
     </VaultContext.Provider>
   );

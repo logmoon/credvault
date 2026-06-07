@@ -19,7 +19,7 @@ pub enum CryptoError {
 }
 
 /// Argon2id parameters stored in the vault header.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Argon2Params {
     pub memory: u32,
     pub iterations: u32,
