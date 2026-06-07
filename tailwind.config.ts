@@ -31,6 +31,11 @@ export default {
             muted: '#C430301A',
           },
         },
+        border: {
+          subtle:  '#FFFFFF0D',
+          DEFAULT: '#FFFFFF1A',
+          strong:  '#FFFFFF26',
+        },
       },
       fontFamily: {
         mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],

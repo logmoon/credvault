@@ -2,9 +2,9 @@
 
 ## Current Status
 
-**Phase:** Phase 0 — Working Desktop Vault
-**Last completed:** 07 Add Entry Form
-**Next:** 08 Wire Entry CRUD to Vault
+**Phase:** Phase 1 — Sync + Polish
+**Last completed:** 11 Settings Screen
+**Next:** 12 Sync — On-Open Pull and On-Save Push
 
 ---
 
@@ -20,8 +20,8 @@
 - [x] 06 Entry List UI
 - [x] 07 Add Entry Form
 - [x] 08 Wire Entry CRUD to Vault
-- [ ] 09 Clipboard Auto-Clear
-- [ ] 10 Auto-Lock Timer
+- [x] 09 Clipboard Auto-Clear
+- [x] 10 Auto-Lock Timer
 
 ### Phase 1 — Sync + Polish
 
@@ -51,6 +51,16 @@
 - **04 — payload format helpers**: Added `split_payload()` to vault.rs for splitting nonce[12] + ciphertext[var] + tag[16]. Return type aliased as `SplitPayload` to satisfy clippy.
 - **04 — Generator fallback to lowercase**: When all character set flags are false, generator falls back to lowercase-only. Never returns empty string.
 - **04 — `uuid` crate added**: Used for vault_id generation on creation.
+
+### Phase 09 — Clipboard Auto-Clear
+
+- **09 — Tauri clipboard-manager plugin used**: Replaced `navigator.clipboard.writeText()` with `@tauri-apps/plugin-clipboard-manager` — the official Tauri 2.0 approach (old `@tauri-apps/api/clipboard` was removed). Plugin registered in Rust, `clipboard-manager:allow-write-text` permission added to capabilities.
+- **09 — Config loaded in VaultContext on mount**: `loadConfig()` called on provider mount. Defaults on first run. `clipboardTimeoutMs` and `clipboardAutoClear` exposed via context.
+- **09 — useClipboard hook lives in VaultShell**: Local hook, not global. Timers cleaned up on unmount (handles auto-lock). Handlers pass down through existing prop chain.
+- **09 — Native OS clipboard clear via arboard**: `clear_clipboard` Rust command uses `arboard::Clipboard::clear()` for a proper OS-level clipboard wipe (all formats, not just text). Added as direct Cargo dep + custom Tauri command.
+- **09 — Smart clear with readText check**: Before clearing, hook reads clipboard via `readText()` and only calls `clear_clipboard` if the password is still there. Prevents overwriting user's subsequent copies.
+- **09 — Brief toasts, no persistent UI**: Two 1.5s auto-dismissing toasts — "Copied — clears in {n}s" on copy, "Clipboard cleared" when native clear fires. No countdown, no "Clear now"/"Keep" buttons.
+- **09 — clipboardAutoClear config field added**: Schema includes `clipboardAutoClear: boolean` (default `true`). When false, hook skips timeout entirely — just copies and shows confirmation toast. Phase 11 will add Settings toggle UI.
 
 ---
 

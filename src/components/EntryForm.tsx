@@ -37,7 +37,7 @@ export const EntryForm = memo(function EntryForm({
   );
 
   return (
-    <div className="space-y-4 flex-1">
+    <div className="space-y-4 flex-1 min-h-0">
       <div>
         <label className="block text-xs text-text-secondary mb-1.5">Title</label>
         <input
@@ -45,7 +45,7 @@ export const EntryForm = memo(function EntryForm({
           value={values.title}
           onChange={handleChange('title')}
           className={`w-full bg-surface border rounded-md px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none appearance-none ${
-            errors?.title ? 'border-status-error/60' : 'border-white/12 focus:border-accent/50'
+            errors?.title ? 'border-status-error/60' : 'border-border-subtle focus:border-accent/50'
           }`}
           placeholder="e.g. Work Gmail"
           autoFocus
@@ -61,7 +61,7 @@ export const EntryForm = memo(function EntryForm({
           type="text"
           value={values.username}
           onChange={handleChange('username')}
-          className="w-full bg-surface border border-white/12 rounded-md px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
+          className="w-full bg-surface border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
           placeholder="user@example.com"
         />
       </div>
@@ -73,7 +73,7 @@ export const EntryForm = memo(function EntryForm({
             type={showPassword ? 'text' : 'password'}
             value={values.password}
             onChange={handleChange('password')}
-            className="w-full font-mono bg-surface border border-white/12 rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
+            className="w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
             placeholder="Generated or typed password"
           />
           <button
@@ -96,7 +96,7 @@ export const EntryForm = memo(function EntryForm({
             type="text"
             value={values.url}
             onChange={handleChange('url')}
-            className="w-full bg-surface border border-white/12 rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
+            className="w-full bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
             placeholder="https://"
           />
           {isValidUrl(values.url) && (

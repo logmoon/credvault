@@ -22,3 +22,6 @@ rand = "0.8"
 thiserror = "2.0.18"
 uuid = { version = "1", features = ["v4"] }
 tauri-plugin-shell = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-dialog = "2"
+arboard = "3"

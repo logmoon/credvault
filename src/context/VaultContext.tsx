@@ -1,15 +1,19 @@
-import { createContext, useContext, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
-import { type Entry } from '../lib/types';
-import { saveVault, lockVault as lockVaultIpc } from '../lib/ipc';
+import { createContext, useContext, useState, useCallback, useRef, useMemo, useEffect, type ReactNode } from 'react';
+import { type Entry, type VaultConfig } from '../lib/types';
+import { saveVault, lockVault as lockVaultIpc, loadConfig, saveConfig } from '../lib/ipc';
 
 type VaultState = {
   locked: boolean;
   entries: Entry[] | null;
-  lockVault: () => void;
+  config: VaultConfig | null;
+  lastLockReason: 'inactivity' | null;
+  lockVault: (reason?: 'inactivity') => void;
   unlockVault: (entries: Entry[]) => void;
   addEntry: (entry: Entry) => void;
   updateEntry: (id: string, fields: Partial<Entry>) => void;
   deleteEntry: (id: string) => void;
+  updateConfig: (fields: Partial<VaultConfig>) => void;
+  clearLockReason: () => void;
 };
 
 const VaultContext = createContext<VaultState | null>(null);
@@ -17,9 +21,25 @@ const VaultContext = createContext<VaultState | null>(null);
 export function VaultProvider({ children }: { children: ReactNode }) {
   const [locked, setLocked] = useState(true);
   const [entries, setEntries] = useState<Entry[] | null>(null);
+  const [config, setConfig] = useState<VaultConfig | null>(null);
+  const [lastLockReason, setLastLockReason] = useState<'inactivity' | null>(null);
   const entriesRef = useRef<Entry[] | null>(null);
   const savePromiseRef = useRef<Promise<void> | null>(null);
   const pendingSaveRef = useRef(false);
+
+  useEffect(() => {
+    loadConfig()
+      .then(setConfig)
+      .catch(() => {
+        // First run — no config file yet; use defaults
+        setConfig({
+          vaultPath: '',
+          lockTimeoutMs: 300_000,
+          clipboardTimeoutMs: 30_000,
+          clipboardAutoClear: true,
+        });
+      });
+  }, []);
 
   const triggerSave = useCallback(async () => {
     const doSave = async () => {
@@ -51,9 +71,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const lockVault = useCallback(() => {
+  const lockVault = useCallback((reason?: 'inactivity') => {
     setEntries(null);
     setLocked(true);
+    setLastLockReason(reason ?? null);
     entriesRef.current = null;
     lockVaultIpc();
   }, []);
@@ -85,6 +106,19 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     queueMicrotask(() => triggerSave());
   }, [triggerSave]);
 
+  const clearLockReason = useCallback(() => setLastLockReason(null), []);
+
+  const updateConfig = useCallback((fields: Partial<VaultConfig>) => {
+    setConfig(prev => {
+      if (!prev) return prev;
+      const next = { ...prev, ...fields };
+      saveConfig(next).catch(() => {
+        console.error('Failed to save config');
+      });
+      return next;
+    });
+  }, []);
+
   const deleteEntry = useCallback((id: string) => {
     setEntries(prev => {
       if (!prev) return prev;
@@ -98,12 +132,16 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({
     locked,
     entries,
+    config,
+    lastLockReason,
     lockVault,
     unlockVault,
     addEntry,
     updateEntry,
     deleteEntry,
-  }), [locked, entries, lockVault, unlockVault, addEntry, updateEntry, deleteEntry]);
+    updateConfig,
+    clearLockReason,
+  }), [locked, entries, config, lastLockReason, lockVault, unlockVault, addEntry, updateEntry, deleteEntry, updateConfig, clearLockReason]);
 
   return (
     <VaultContext.Provider value={value}>

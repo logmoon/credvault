@@ -36,7 +36,7 @@ export function ConfirmDialog({
       onClick={onCancel}
     >
       <div
-        className="bg-surface-window border border-white/12 rounded-xl p-6 w-full max-w-[400px]"
+        className="bg-surface-window border border-border-subtle rounded-xl p-6 w-full max-w-[400px]"
         onClick={e => e.stopPropagation()}
       >
         <h3 className="text-sm text-text-primary font-medium mb-2">{title}</h3>
@@ -44,7 +44,7 @@ export function ConfirmDialog({
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onCancel}
-            className="text-sm text-text-secondary border border-white/12 rounded-md px-4 py-2 hover:bg-surface-hover transition-colors"
+            className="text-sm text-text-secondary border border-border-subtle rounded-md px-4 py-2 hover:bg-surface-hover transition-colors"
           >
             Cancel
           </button>

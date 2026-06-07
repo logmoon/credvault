@@ -1,3 +1,4 @@
+use crate::config;
 use crate::crypto;
 use crate::generator;
 use crate::vault;
@@ -6,6 +7,13 @@ use std::sync::Mutex;
 use zeroize::Zeroizing;
 use tauri::Manager;
 use uuid::Uuid;
+
+#[tauri::command]
+pub fn clear_clipboard() -> Result<(), String> {
+    let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+    clipboard.clear().map_err(|e| e.to_string())?;
+    Ok(())
+}
 
 /// In-memory session state held after unlock, cleared on lock.
 /// Caches the derived key and vault metadata so saves skip Argon2 entirely.
@@ -170,4 +178,65 @@ pub fn get_default_vault_path(app: tauri::AppHandle) -> Result<String, String> {
     std::fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
     let vault_path = data_dir.join("vault.cvault");
     Ok(vault_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn load_config(app: tauri::AppHandle) -> Result<config::VaultConfig, String> {
+    config::read_config_from_app(&app).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn save_config(app: tauri::AppHandle, config: config::VaultConfig) -> Result<(), String> {
+    config::write_config_to_app(&app, &config).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn pick_vault_path(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let file = app
+        .dialog()
+        .file()
+        .add_filter("CredVault", &["cvault"])
+        .blocking_pick_file();
+    Ok(file.map(|f| f.to_string()))
+}
+
+#[tauri::command]
+pub fn change_vault_path(
+    new_path: String,
+    state: tauri::State<SessionState>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let new_path = PathBuf::from(&new_path);
+
+    // Get current session data
+    let old_path = {
+        let session = state.0.lock().map_err(|e| e.to_string())?;
+        let s = session.as_ref().ok_or("Vault is not unlocked")?;
+        s.path.clone()
+    };
+
+    if new_path == old_path {
+        return Ok(());
+    }
+
+    // Copy vault file from old path to new path
+    if old_path.exists() {
+        std::fs::copy(&old_path, &new_path).map_err(|e| e.to_string())?;
+    }
+
+    // Update SessionState.path
+    {
+        let mut session = state.0.lock().map_err(|e| e.to_string())?;
+        if let Some(s) = session.as_mut() {
+            s.path = new_path.clone();
+        }
+    }
+
+    // Update config.json with new vault path
+    let mut cfg = config::read_config_from_app(&app).map_err(|e| e.to_string())?;
+    cfg.vault_path = new_path.to_string_lossy().to_string();
+    config::write_config_to_app(&app, &cfg).map_err(|e| e.to_string())?;
+
+    Ok(())
 }

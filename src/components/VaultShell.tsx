@@ -1,25 +1,43 @@
 import { useState, useCallback } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Settings as SettingsIcon, Lock } from 'lucide-react';
 import { open } from '@tauri-apps/plugin-shell';
 import { useVault } from '../context/VaultContext';
+import { useClipboard } from '../hooks/useClipboard';
+import { useAutoLock } from '../hooks/useAutoLock';
 import { isValidUrl } from '../lib/url';
 import { EntryList } from './EntryList';
 import { AddEntry } from './AddEntry';
 import { EntryDetail } from './EntryDetail';
+import { Settings } from './Settings';
+import { ClipboardToast } from './ClipboardToast';
 
 export function VaultShell() {
-  const { entries, lockVault } = useVault();
+  const { entries, config, lockVault } = useVault();
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [rightPanel, setRightPanel] = useState<'add' | 'edit' | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [panelKey, setPanelKey] = useState(0);
 
-  const handleCopyUsername = (id: string) => {
-    console.log('Copy username:', id);
-  };
+  const { showCopiedToast, showClearedToast, timeoutSecs, copyToClipboard } = useClipboard(
+    config?.clipboardTimeoutMs ?? 30_000,
+    config?.clipboardAutoClear ?? true,
+  );
 
-  const handleCopyPassword = (id: string) => {
-    console.log('Copy password:', id);
-  };
+  const handleAutoLock = useCallback(() => {
+    lockVault('inactivity');
+  }, [lockVault]);
+
+  useAutoLock(config?.lockTimeoutMs ?? 300_000, handleAutoLock);
+
+  const handleCopyUsername = useCallback((id: string) => {
+    const entry = entries?.find(e => e.id === id);
+    if (entry) copyToClipboard(entry.username);
+  }, [entries, copyToClipboard]);
+
+  const handleCopyPassword = useCallback((id: string) => {
+    const entry = entries?.find(e => e.id === id);
+    if (entry) copyToClipboard(entry.password);
+  }, [entries, copyToClipboard]);
 
   const handleOpenUrl = useCallback(async (url: string) => {
     const normalized =
@@ -56,18 +74,33 @@ export function VaultShell() {
 
   return (
     <div className="min-h-screen bg-surface-window flex flex-col">
-      <header className="flex items-center justify-between px-6 py-3 border-b border-white/8">
+      {/* Header — strong bottom border to separate from content */}
+      <header className="bg-surface border-b border-border-strong flex items-center justify-between px-6 py-3">
         <span className="text-sm text-text-secondary font-medium">CredVault</span>
-        <button
-          onClick={lockVault}
-          className="text-xs text-text-muted hover:text-text-primary transition-colors"
-        >
-          Lock
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="p-2 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary"
+            aria-label="Settings"
+            title="Settings"
+          >
+            <SettingsIcon size={16} />
+          </button>
+          <button
+            onClick={() => lockVault()}
+            className="p-2 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary"
+            aria-label="Lock vault"
+            title="Lock"
+          >
+            <Lock size={16} />
+          </button>
+        </div>
       </header>
+
       <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar — strong right border to separate from right panel */}
         <div
-          className="w-[280px] shrink-0 border-r border-white/8 flex flex-col"
+          className="w-[280px] shrink-0 bg-surface border-r border-border-strong flex flex-col min-h-0"
           onClick={handleDeselect}
         >
           <EntryList
@@ -80,10 +113,17 @@ export function VaultShell() {
             isValidUrl={isValidUrl}
           />
         </div>
-        <main className="flex-1 overflow-y-auto">
+
+        <main className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
           {rightPanel === 'add' && <AddEntry key={panelKey} onClose={handleClosePanel} />}
           {rightPanel === 'edit' && selectedEntryId && (
             <EntryDetail key={selectedEntryId} entryId={selectedEntryId} onClose={handleClosePanel} />
+          )}
+          {showCopiedToast && (
+            <ClipboardToast type="copied" timeoutSecs={timeoutSecs} />
+          )}
+          {showClearedToast && (
+            <ClipboardToast type="cleared" />
           )}
         </main>
       </div>
@@ -97,6 +137,10 @@ export function VaultShell() {
         >
           <Plus size={20} />
         </button>
+      )}
+
+      {settingsOpen && (
+        <Settings onClose={() => setSettingsOpen(false)} />
       )}
     </div>
   );

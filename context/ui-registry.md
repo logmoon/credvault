@@ -9,13 +9,13 @@ _Written by `/imprint` after building any UI component. Read this before buildin
 ### LockScreen
 
 File: `src/components/LockScreen.tsx`
-Last updated: 2026-06-06
+Last updated: 2026-06-07
 
 | Property | Class |
 |---|---|
 | Page background | `bg-surface-window` |
 | Input background | `bg-surface` |
-| Input border | `border border-white/12` |
+| Input border | `border border-border-subtle` |
 | Input radius | `rounded-md` |
 | Input padding | `px-3 py-2` |
 | Input text | `text-sm text-text-primary font-mono` |
@@ -38,6 +38,7 @@ Last updated: 2026-06-06
 - Inputs with icon insets use additional `pr-10` padding to prevent text overlap with the icon button.
 - Custom password reveal toggle uses lucide-react `Eye`/`EyeOff` icons positioned `absolute right-2 top-1/2 -translate-y-1/2` inside a `relative` wrapper.
 - Every input that uses a reveal toggle should also suppress the browser-native toggle with `appearance-none` and CSS pseudo-element rules in `index.css`.
+- Inputs use `border-border-subtle` as the default state, switching to `border-status-error/60` on validation error.
 
 ### EntryRow
 
@@ -69,40 +70,46 @@ Last updated: 2026-06-06
 ### VaultShell
 
 File: `src/components/VaultShell.tsx`
-Last updated: 2026-06-06
+Last updated: 2026-06-07
 
 | Property | Class |
 |---|---|
 | Page background | `bg-surface-window` |
-| Header background | transparent (inherits page bg) |
-| Header border | `border-b border-white/8` |
+| Header background | `bg-surface` |
+| Header border | `border-b border-border-strong` |
 | Header padding | `px-6 py-3` |
 | App name text | `text-sm text-text-secondary font-medium` |
-| Lock button text | `text-xs text-text-muted hover:text-text-primary transition-colors` |
+| Header icon button | `p-2 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` with `aria-label` + `title` |
+| Header icon size | `size={16}` (lucide-react — Settings, Lock icons) |
 | Sidebar width | `w-[280px]` |
-| Sidebar separator | `border-r border-white/8` |
-| Right panel | `flex-1 overflow-y-auto` |
+| Sidebar background | `bg-surface` |
+| Sidebar separator | `border-r border-border-strong` |
+| Sidebar flex | `shrink-0 flex flex-col min-h-0` |
+| Right panel | `flex-1 flex flex-col min-h-0 relative overflow-hidden` |
 | FAB | `fixed bottom-6 right-6 bg-accent hover:bg-accent-dark text-white rounded-full p-3 transition-colors` |
 | FAB icon | `Plus` lucide-react `size={20}` |
 
 **Pattern notes:**
 - Layout is `flex flex-col` at root level: header full-width, then `flex flex-1 overflow-hidden` for sidebar + right panel below.
-- Sidebar uses `shrink-0` to prevent collapsing.
+- Header and sidebar use `bg-surface` to visually separate from right panel `bg-surface-window`.
+- Sidebar uses `shrink-0` to prevent collapsing, `min-h-0` for correct flex shrink behavior.
+- Right panel uses `overflow-hidden` — child components (AddEntry, EntryDetail) manage their own scrolling via `absolute inset-0` + split scroll area / fixed footer.
 - Right panel renders AddEntry or EntryDetail based on `rightPanel` state. When nothing is selected, it's empty — matches ui-rules "no placeholder" spec.
 - FAB is hidden when AddEntry is open (`rightPanel === 'add'`).
 - FAB has no shadow — follows flat-surface design rule.
+- Separators use `border-border-strong` (15% white) — strongest border level for structural divisions.
 
 ### PasswordGenerator
 
 File: `src/components/PasswordGenerator.tsx`
-Last updated: 2026-06-06
+Last updated: 2026-06-07
 
 | Property | Class |
 |---|---|
 | Toggle button text | `text-xs text-text-muted hover:text-text-secondary` |
 | Toggle button layout | `flex items-center gap-1.5` |
 | Panel background | `bg-surface-raised` |
-| Panel border | `border border-white/8` |
+| Panel border | `border border-border-subtle` |
 | Panel radius | `rounded-md` |
 | Panel padding | `p-3` |
 | Panel spacing | `space-y-3` |
@@ -111,7 +118,7 @@ Last updated: 2026-06-06
 | Slider | `w-full accent-accent` |
 | Checkbox | `accent-accent` |
 | Checkbox label | `text-xs text-text-secondary` |
-| Generate button | `w-full text-xs text-text-secondary border border-white/12 rounded-md px-3 py-1.5 hover:bg-surface-hover transition-colors disabled:opacity-40` |
+| Generate button | `w-full text-xs text-text-secondary border border-border-subtle rounded-md px-3 py-1.5 hover:bg-surface-hover transition-colors disabled:opacity-40` |
 | Icon size | `size={14}` (lucide-react) |
 
 **Pattern notes:**
@@ -123,32 +130,32 @@ Last updated: 2026-06-06
 ### AddEntry
 
 File: `src/components/AddEntry.tsx`
-Last updated: 2026-06-06
+Last updated: 2026-06-07
 
 | Property | Class |
 |---|---|
-| Form container | `h-full flex flex-col p-6` |
-| Form spacing | `space-y-4` |
+| Form container | `absolute inset-0 flex flex-col` |
+| Form spacing | `space-y-4` (inside scroll area) |
 | Heading | `text-sm text-text-primary font-medium` |
-| Close button | `p-2 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` |
+| Close button | `p-2.5 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` |
 | Label text | `text-xs text-text-secondary mb-1.5` |
 | Label — password | `font-mono` (adds mono font for password labels) |
-| Input — text | `w-full bg-surface border border-white/12 rounded-md px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none` |
+| Input — text | `w-full bg-surface border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none` |
 | Input — error state | `border-status-error/60` |
 | Input — password | same as text but with `font-mono` and `pr-10` for icon inset |
 | Error text | `text-xs text-status-error mt-1` |
-| Button — secondary (Cancel) | `text-sm text-text-secondary border border-white/12 rounded-md px-4 py-2 hover:bg-surface-hover transition-colors` |
 | Button — primary (Save) | `bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
-| Footer separator | `border-t border-white/8 pt-6 mt-6` |
-| Footer layout | `flex items-center justify-end gap-2` |
+| Footer separator | `border-t border-border shrink-0` |
+| Footer layout | `flex items-center justify-end px-6 py-4` |
 | Icon size | `size={16}` (lucide-react) |
+| Close icon | `X size={18}` |
 
 **Pattern notes:**
-- Form fills the right panel height — heading at top, fields in flex-1 scroll area, buttons pinned to bottom with top border separator.
+- Form uses `absolute inset-0 flex flex-col` — inner scroll area (`flex-1 overflow-y-auto min-h-0 p-6`) plus fixed footer (`shrink-0`).
 - Title is the only required field — validation error shown inline below the input.
 - Password field defaults to visible (`showPassword: true`) in AddEntry context.
 - Escape closes the form. Enter submits if title is non-empty.
-- Cancel and Save are always at the bottom-right, Cancel on the left, Save on the right.
+- No Cancel button — only Save in the footer. Close via Escape or the X button.
 
 ### EntryForm
 
@@ -157,10 +164,10 @@ Last updated: 2026-06-07
 
 | Property | Class |
 |---|---|
-| Container spacing | `space-y-4 flex-1` |
+| Container spacing | `space-y-4 flex-1 min-h-0` |
 | Label text | `text-xs text-text-secondary mb-1.5` |
 | Label — password | `font-mono` (adds mono font for password labels) |
-| Input — text | `w-full bg-surface border border-white/12 rounded-md px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none` |
+| Input — text | `w-full bg-surface border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none` |
 | Input — error state | `border-status-error/60` |
 | Input — password | same as text but with `font-mono` and `pr-10` for icon inset |
 | Reveal toggle | `absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` with `tabIndex={-1}` |
@@ -185,11 +192,11 @@ Last updated: 2026-06-07
 
 | Property | Class |
 |---|---|
-| Container | `h-full flex flex-col p-6` |
+| Container | `absolute inset-0 flex flex-col` |
 | Heading text | `text-sm text-text-primary font-medium truncate` |
 | Close button | `p-2.5 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` with `X size={18}` |
-| Footer separator | `border-t border-white/8 pt-6 mt-6` |
-| Footer layout | `flex items-center justify-between` |
+| Footer separator | `border-t border-border shrink-0` |
+| Footer layout | `flex items-center justify-between px-6 py-4` |
 | Button — destructive (Delete) | `flex items-center gap-1.5 text-sm text-status-error border border-status-error/30 rounded-md px-3 py-2 hover:bg-status-error/15 transition-colors` with `Trash2 size={14}` |
 | Button — primary (Save) | `bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
 
@@ -211,14 +218,14 @@ Last updated: 2026-06-07
 |---|---|
 | Overlay | `fixed inset-0 bg-black/60 flex items-center justify-center z-50` |
 | Dialog background | `bg-surface-window` |
-| Dialog border | `border border-white/12` |
+| Dialog border | `border border-border-subtle` |
 | Dialog radius | `rounded-xl` |
 | Dialog padding | `p-6` |
 | Dialog max width | `max-w-[400px]` |
 | Title text | `text-sm text-text-primary font-medium mb-2` |
 | Message text | `text-sm text-text-secondary mb-6` |
 | Button layout | `flex items-center justify-end gap-2` |
-| Button — Cancel | `text-sm text-text-secondary border border-white/12 rounded-md px-4 py-2 hover:bg-surface-hover transition-colors` |
+| Button — Cancel | `text-sm text-text-secondary border border-border-subtle rounded-md px-4 py-2 hover:bg-surface-hover transition-colors` |
 | Button — destructive confirm | `text-sm font-medium text-status-error border border-status-error/30 hover:bg-status-error/15 rounded-md px-4 py-2 transition-colors disabled:opacity-40` |
 | Button — normal confirm | `bg-accent hover:bg-accent-dark text-white text-sm font-medium rounded-md px-4 py-2 transition-colors disabled:opacity-40` |
 | Loading label | `'Deleting…'` (suffix appended to confirmLabel when loading) |
@@ -229,3 +236,94 @@ Last updated: 2026-06-07
 - `destructive` prop switches confirm button between accent and error styling
 - `loading` prop adds `disabled:opacity-40` and changes confirm label to `'Deleting…'`
 - **Deviation from ui-tokens**: Dialog uses `bg-surface-window` but design tokens specify `surface.overlay` (`#2E2E2E`) for modals. Consider updating to `bg-surface-overlay`.
+
+### ClipboardToast
+
+File: `src/components/ClipboardToast.tsx`
+Last updated: 2026-06-07
+
+| Property | Class |
+|---|---|
+| Container | `absolute bottom-6 left-1/2 -translate-x-1/2` |
+| Background | `bg-surface-overlay` |
+| Border | `border border-border-subtle` |
+| Border radius | `rounded-lg` |
+| Padding | `px-4 py-2.5` |
+| Text | `text-xs text-text-primary whitespace-nowrap` |
+| Shadow | `shadow-sm` |
+| Transition | `transition-opacity` |
+**Pattern notes:**
+- Two variants: `copied` shows "Copied — clears in {n}s" (with seconds), `cleared` shows "Clipboard cleared" (no seconds).
+- Positioned absolutely inside the right panel (`relative` container on `<main>`) — not `fixed` relative to window.
+- No interactive elements — just informational text, auto-dismissed by the hook after 1.5s.
+- Seconds value (`timeoutSecs`) is captured at copy time and never updates — toast dismisses before it would tick.
+
+### Settings
+
+File: `src/components/Settings.tsx`
+Last updated: 2026-06-07
+
+| Property | Class |
+|---|---|
+| Overlay | `fixed inset-0 bg-black/60 flex items-center justify-center z-50` |
+| Dialog background | `bg-surface-window` |
+| Dialog border | `border border-border` |
+| Dialog radius | `rounded-xl` |
+| Dialog size | `w-[600px] max-w-[90vw] max-h-[80vh]` |
+| Dialog layout | `flex flex-col` |
+| Header layout | `flex items-center justify-between p-6 pb-0 shrink-0` |
+| Header border | `border-b border-border-strong` |
+| Heading text | `text-sm text-text-primary font-medium` |
+| Close button | `p-2.5 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` with `X size={18}` |
+| Content scroll | `overflow-y-auto p-6 flex-1` |
+| Section spacing | `space-y-5` |
+| Section heading | `text-xs text-text-muted uppercase tracking-wider font-medium mb-2` |
+| Card background | `bg-surface-raised` |
+| Card border | `border border-border` |
+| Card radius | `rounded-lg` |
+| Card padding | `p-4` |
+| Card spacing | `space-y-3` |
+| Label text | `text-xs text-text-secondary` |
+| Value text | `text-xs text-text-muted font-mono` |
+| Path display | `text-sm text-text-primary truncate` |
+| Directory text | `text-xs text-text-muted truncate` |
+| Range slider | `w-full accent-accent` |
+| Range min/max text | `text-xs text-text-muted` |
+| Checkbox input | `accent-accent` |
+| Checkbox label | `flex items-center gap-2 cursor-pointer` |
+| Checkbox text | `text-xs text-text-secondary` |
+| Button — secondary (Change path) | `text-sm text-text-secondary border border-border rounded-md px-3 py-1.5 hover:bg-surface-hover transition-colors shrink-0` |
+| Button — disabled | `w-full text-sm text-text-muted border border-border rounded-md px-3 py-1.5 opacity-40 cursor-not-allowed` |
+
+**Pattern notes:**
+- Full-screen overlay modal (not right panel). Overlay click closes; Escape closes via keydown listener.
+- Dialog is larger than ConfirmDialog — `w-[600px]` with `max-h-[80vh]` and internal scroll.
+- No primary/save button — every change persists immediately on interaction.
+- Header pinned at top (`shrink-0`), content scrolls internally (`overflow-y-auto flex-1`).
+- Vault path section shows filename + parent directory path (two lines, both truncated).
+- Range slider displays current value to the right as `font-mono` text.
+- Sync Now button is always disabled until Phase 12.
+- ConfirmDialog overlay shown for vault path overwrite confirmation — uses existing ConfirmDialog component.
+
+### AutoLockToast (inline)
+
+File: `src/App.tsx`
+Last updated: 2026-06-07
+
+| Property | Class |
+|---|---|
+| Container | `fixed bottom-6 left-1/2 -translate-x-1/2 z-50` |
+| Background | `bg-surface-overlay` |
+| Border | `border border-border-subtle` |
+| Border radius | `rounded-lg` |
+| Padding | `px-4 py-2.5` |
+| Text | `text-xs text-text-primary` |
+| Shadow | `shadow-sm` |
+
+**Pattern notes:**
+- Rendered inline in AppContent, not as a separate component — lives above the locked/unlocked branch so it persists across transitions.
+- Uses `fixed` (not `absolute`) positioning — must be visible above both LockScreen and VaultShell.
+- `z-50` ensures it layers above all content.
+- No interactive elements — auto-dismissed after 2s via `useEffect` in AppContent.
+- Shares the same visual styling as ClipboardToast (`bg-surface-overlay`, `border-border-subtle`, `rounded-lg`, `px-4 py-2.5`, `text-xs`).
+- No `transition-opacity` — appears/disappears instantly (matches the lock transition).

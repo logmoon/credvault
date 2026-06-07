@@ -10,6 +10,33 @@ body,
   padding: 0;
 }
 
+html {
+  background-color: #141414;
+}
+
+body {
+  overflow: hidden;
+}
+
+/* Thin, dark scrollbar for the app */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 /* Hide browser-native password reveal toggle — we use a custom one */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {

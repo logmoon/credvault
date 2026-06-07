@@ -68,26 +68,30 @@ export function AddEntry({ onClose }: AddEntryProps) {
   }, [onClose, handleSave, values.title]);
 
   return (
-    <div className="h-full flex flex-col p-6" onKeyDown={handleKeyDown}>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-sm text-text-primary font-medium">New entry</h2>
-        <button
-          onClick={onClose}
-          className="p-2.5 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary"
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
+    <div className="absolute inset-0 flex flex-col" onKeyDown={handleKeyDown}>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto min-h-0 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-sm text-text-primary font-medium">New entry</h2>
+          <button
+            onClick={onClose}
+            className="p-2.5 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <EntryForm
+          values={values}
+          onChange={handleChange}
+          errors={errors}
+          onPasswordGenerated={handlePasswordGenerated}
+        />
       </div>
 
-      <EntryForm
-        values={values}
-        onChange={handleChange}
-        errors={errors}
-        onPasswordGenerated={handlePasswordGenerated}
-      />
-
-      <div className="flex items-center justify-end gap-2 pt-6 border-t border-white/8 mt-6">
+      {/* Fixed footer — default border to clearly separate from scroll content */}
+      <div className="flex items-center justify-end px-6 py-4 border-t border-border shrink-0">
         <button
           onClick={handleSave}
           disabled={submitting || !values.title.trim()}

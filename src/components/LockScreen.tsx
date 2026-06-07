@@ -8,7 +8,7 @@ function capitalize(s: string): string {
 }
 
 export function LockScreen() {
-  const { unlockVault: setUnlocked } = useVault();
+  const { unlockVault: setUnlocked, updateConfig } = useVault();
 
   const [mode, setMode] = useState<'loading' | 'unlock' | 'create'>('loading');
   const [vaultPath, setVaultPath] = useState('');
@@ -45,6 +45,7 @@ export function LockScreen() {
     try {
       // unlock_vault caches the derived key in Rust SessionState
       const entries = await unlockVault(password, vaultPath);
+      updateConfig({ vaultPath });
       setUnlocked(entries);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -65,6 +66,7 @@ export function LockScreen() {
     try {
       await createVault(password, vaultPath);
       const entries = await unlockVault(password, vaultPath);
+      updateConfig({ vaultPath });
       setUnlocked(entries);
     } catch {
       setError('Failed to create vault');
@@ -116,7 +118,7 @@ export function LockScreen() {
                 value={password}
                 onChange={e => { setPassword(e.target.value); setError(''); }}
                 onKeyDown={handleKeyDown}
-                className="w-full font-mono bg-surface border border-white/12 rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
+                className="w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
                 placeholder="Enter master password"
                 autoFocus
               />
@@ -143,7 +145,7 @@ export function LockScreen() {
                   value={confirmPassword}
                   onChange={e => { setConfirmPassword(e.target.value); setError(''); }}
                   onKeyDown={handleKeyDown}
-                  className="w-full font-mono bg-surface border border-white/12 rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
+                  className="w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
                   placeholder="Re-enter master password"
                 />
                 <button

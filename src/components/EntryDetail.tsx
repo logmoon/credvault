@@ -84,27 +84,31 @@ export function EntryDetail({ entryId, onClose }: EntryDetailProps) {
   }
 
   return (
-    <div className="h-full flex flex-col p-6" onKeyDown={handleKeyDown}>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-sm text-text-primary font-medium truncate">{entry.title}</h2>
-        <button
-          onClick={onClose}
-          className="p-2.5 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary"
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
+    <div className="absolute inset-0 flex flex-col" onKeyDown={handleKeyDown}>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto min-h-0 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-sm text-text-primary font-medium truncate">{entry.title}</h2>
+          <button
+            onClick={onClose}
+            className="p-2.5 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <EntryForm
+          values={values}
+          onChange={handleChange}
+          errors={errors}
+          onPasswordGenerated={handlePasswordGenerated}
+          initialPasswordVisible={false}
+        />
       </div>
 
-      <EntryForm
-        values={values}
-        onChange={handleChange}
-        errors={errors}
-        onPasswordGenerated={handlePasswordGenerated}
-        initialPasswordVisible={false}
-      />
-
-      <div className="flex items-center justify-between pt-6 border-t border-white/8 mt-6">
+      {/* Fixed footer — default border to clearly separate from scroll content */}
+      <div className="flex items-center justify-between px-6 py-4 border-t border-border shrink-0">
         <button
           onClick={() => setShowDelete(true)}
           className="flex items-center gap-1.5 text-sm text-status-error border border-status-error/30 rounded-md px-3 py-2 hover:bg-status-error/15 transition-colors"

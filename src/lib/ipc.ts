@@ -42,11 +42,16 @@ export async function resolveConflict(
   return invoke<void>('resolve_conflict', { keep, conflictPath, localPath, syncPath });
 }
 
+export async function clearClipboard(): Promise<void> {
+  return invoke<void>('clear_clipboard');
+}
+
 export async function saveConfig(config: {
   vaultPath: string;
   syncPath?: string;
   lockTimeoutMs: number;
   clipboardTimeoutMs: number;
+  clipboardAutoClear: boolean;
 }): Promise<void> {
   return invoke<void>('save_config', { config });
 }
@@ -56,6 +61,7 @@ export async function loadConfig(): Promise<{
   syncPath?: string;
   lockTimeoutMs: number;
   clipboardTimeoutMs: number;
+  clipboardAutoClear: boolean;
 }> {
   return invoke('load_config');
 }
@@ -66,4 +72,8 @@ export async function pickVaultPath(): Promise<string | null> {
 
 export async function getDefaultVaultPath(): Promise<string> {
   return invoke<string>('get_default_vault_path');
+}
+
+export async function changeVaultPath(newPath: string): Promise<void> {
+  return invoke<void>('change_vault_path', { newPath });
 }

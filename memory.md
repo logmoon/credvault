@@ -1,70 +1,48 @@
-# Memory — Phase 08 + SessionState + Review Fixes
+# Memory — Phase 11: Settings Screen, Border Audit, UI Polish
 
 Last updated: 2026-06-07
 
 ## What was built
 
-### Phase 08 — Wire Entry CRUD to Vault
-- `src/components/EntryForm.tsx` — Shared form component (title, username, password, URL fields with password reveal and URL open icon). Wrapped in `React.memo`.
-- `src/components/EntryDetail.tsx` — Edit form with pre-filled entry values, Delete button (opens ConfirmDialog), Save button. Passwords hidden by default (`initialPasswordVisible={false}`).
-- `src/components/ConfirmDialog.tsx` — Modal dialog with overlay, Escape dismisses, overlay click dismisses. Supports `destructive` variant for delete confirmation.
-- `src/context/VaultContext.tsx` — Added `addEntry`, `updateEntry`, `deleteEntry` mutation handlers. Ref-based immediate save (`triggerSave`) with `queueMicrotask` deferral. `useMemo` on context value. Removed `passwordRef`, `vaultPathRef` (moved to backend SessionState). `lockVault` calls IPC to clear session.
-- `src/lib/ipc.ts` — `saveVault` now takes only `entries` (no password/path). Added `lockVault()`.
-- `src/components/VaultShell.tsx` — Conditional rendering for right panel (not display:none). Sidebar click-to-deselect. `handleClosePanel` clears `selectedEntryId`.
-- `src/components/EntryRow.tsx` — Added `isValidUrl` prop, ExternalLink icon for valid URLs, `e.stopPropagation()` on icon buttons, icon order: Copy Username → Copy Password → Open URL.
-- `src/components/EntryList.tsx` — Passes props through to EntryRow.
-- `context/ui-registry.md` — Added EntryForm, EntryDetail, ConfirmDialog entries.
+### Phase 11 — Settings Screen
+- `src/components/Settings.tsx` — Full-screen modal overlay (w-[600px], max-h-[80vh]) with vault path picker (native Tauri dialog), lock timeout slider (1-60 min), clipboard timeout slider (15-120s), auto-clear toggle. Every change persists immediately to config.json. Overlay + Escape dismiss. Sync Now button disabled placeholder (Phase 12).
+- `src-tauri/src/config.rs` — New Rust module: `VaultConfig` struct, `read_config`/`write_config` with JSON serialization, `read_config_from_app`/`write_config_from_app` helpers for app data dir path resolution.
+- `commands.rs` — Added `load_config`, `save_config`, `pick_vault_path`, `change_vault_path` commands. `change_vault_path` copies vault file (not re-encrypts), updates `SessionState.path`, writes new path to config.json. Shows ConfirmDialog if target already has a vault.
+- Lock button changed from text to lucide `Lock` icon (matching gear icon styling).
 
-### Bug 1 Fix — SessionState caching (UI lag fix)
-- `src-tauri/src/commands.rs` — Added `VaultSession`, `VaultBodyMeta`, `SessionState(Mutex<Option<VaultSession>>)`. `unlock_vault` caches derived key + header + body_meta via `tauri::State<SessionState>`. `save_vault` is async, reads key from state — no Argon2, no disk read, no decrypt. `lock_vault` zeroes session (infallible, returns `()`).
-- `src-tauri/src/lib.rs` — Registered `SessionState` via `.manage()`. Added `lock_vault` to command handler.
-- `src-tauri/src/crypto.rs` — `Argon2Params` now `#[derive(Clone)]`.
-- `src-tauri/src/vault.rs` — `VaultHeader` now `#[derive(Clone)]`.
-
-### Bug 2 Fix — URL validation
-- `src/lib/url.ts` — New shared `isValidUrl` with dot/localhost check. Used by both VaultShell.tsx and EntryForm.tsx.
-
-### Previously (shell plugin)
-- `@tauri-apps/plugin-shell` (npm) + `tauri-plugin-shell` (Cargo) installed and registered. Capability `shell:allow-open` added. Used for URL opening in EntryForm and EntryRow.
+### Border token system + UI polish
+- Three-level border color scale in `tailwind.config.ts`: `border.subtle` (#FFFFFF0D), `border.DEFAULT` (#FFFFFF1A), `border.strong` (#FFFFFF26).
+- Sidebar + header use `bg-surface` for visual separation from right panel `bg-surface-window`.
+- Settings cards use `bg-surface-raised` with `border border-border`.
+- Right panel scrolling restructured: AddEntry/EntryDetail use `absolute inset-0` with split scroll area (`flex-1 overflow-y-auto min-h-0 p-6`) + fixed pinned footer (`border-t border-border shrink-0`).
+- Header separators use `border-border-strong`, footer separators use `border-border`, inputs/buttons use `border-border-subtle`.
 
 ## Decisions made
 
-- **SessionState pattern**: Backend owns the derived key. Frontend sends password+path only on `unlock_vault`. Every `save_vault` uses cached key. `lock_vault` clears the session. This eliminates the 50-100ms Argon2 delay on every CRUD operation.
-- **Immediate save, no debounce**: `triggerSave()` fires on every mutation via refs. `queueMicrotask` defers the IPC dispatch past the React render cycle to avoid hangs. `pendingSaveRef` + recursive `doSave` prevent concurrent saves.
-- **Conditional rendering for right panel**: `{rightPanel === 'add' && <AddEntry />}` instead of `display:none`. EntryDetail unmounts when hidden — no re-render cost from context changes.
-- **`lock_vault` infallible**: Returns `()` on Rust side. Mutex error silently ignored — session replaced on next unlock anyway. Frontend calls fire-and-forget with no `.catch()`.
-- **Shared isValidUrl**: Single source in `src/lib/url.ts`. Accepts multi-label hostnames (e.g. `google.com`, `192.168.1.1`) and `localhost`. Rejects bare words like `dawd`.
+- **Settings as modal overlay, not right panel**: Covers most of app, follows ConfirmDialog pattern. Overlay click + Escape dismiss.
+- **Vault path change takes effect immediately**: Copies vault file, updates SessionState, writes config.json. Does not require re-lock/unlock.
+- **No "Save" button in Settings**: Every config change persists immediately on interaction (slider move, checkbox toggle, path change).
+- **border color conflict resolution**: Since the color group is named `border`, all variants must be prefixed with `border-border-`. The subtle variant is `border-border-subtle`, NOT `border-subtle` (which silently resolves to nothing in Tailwind's parser).
 
 ## Problems solved
 
-- **UI lag on every CRUD operation**: `save_vault` was running Argon2 key derivation (~50-100ms) on every save. Fix: SessionState caches the derived key on unlock; saves skip Argon2 entirely.
-- **save_vault also re-read and decrypted the vault file** on every save just to extract metadata it wasn't modifying. Fix: body_meta cached in VaultBodyMeta struct.
-- **URL icon showing for garbage like "daws"**: Two separate `isValidUrl` functions — the one used by EntryRow (in VaultShell) didn't have the dot check. Fix: single shared function in `src/lib/url.ts` with proper hostname validation.
-- **Save/close not deselecting sidebar item**: `handleClosePanel` was missing `setSelectedEntryId(null)`.
-- **EntryDetail re-rendering when hidden**: `display:none` kept it mounted. Fix: conditional rendering so it unmounts.
-- **Context consumers re-rendering unnecessarily**: Context value wasn't memoized. Fix: `useMemo`.
-- **EntryForm re-rendering on unrelated context changes**: Fix: `React.memo`.
-- **Silent save failure after lock**: If auto-lock fired while save was in flight, `saveVault` returned error behind the scenes with no user feedback. Fix: catch block checks `entriesRef.current` — if null (locked), silently skips logging.
-- **Orphaned session on lock IPC failure**: Rear but possible. Fix: `lock_vault` returns `()` on Rust (always resolves). Frontend calls fire-and-forget.
+- **`border-subtle` silently missing from build**: Tailwind's `border` color group conflicts with the `border` width utility class. `border-subtle` never generated in CSS. Fix: use `border-border-subtle` (matching the pattern of `border-border` for DEFAULT and `border-border-strong` for strong). Confirmed by grepping the compiled CSS output.
+- **12 remaining `border-white/5` instances**: Found via `/review` audit across 6 files. Replaced with `border-border-subtle` (after the naming fix above).
 
 ## Current state
 
-- `npx tsc --noEmit` → 0 errors
-- `npx vite build` → clean
-- `cargo clippy -- -D warnings` → clean
-- `cargo test` → 26/26 pass
-- Full CRUD loop works end to end: add, edit, delete entries; entries survive lock/unlock
-- Save Vault runs without Argon2 (SessionState cached on unlock)
-- URL validation correctly rejects bare words, accepts domains and localhost
-- URL open works via Tauri shell plugin (not `window.open`)
-- Right panel only renders actively selected component (add/edit)
-- No frontend holds password or vault path in state — backend owns the session
-- Lock clears Rust session; lock button works immediately
+- Phase 11 complete and verified
+- `npx tsc --noEmit`: 0 errors
+- `npx vite build`: clean
+- `cargo clippy -- -D warnings`: clean
+- `cargo test`: 26/26 pass
+- All 11 components documented in `ui-registry.md` with current border tokens
 
 ## Next session starts with
 
-**Phase 09 — Clipboard Auto-Clear**: Wire copy buttons to `useClipboard` hook with countdown toast. Build `ClipboardToast` component with "Clear now" and "Keep" buttons. Implement countdown timer. Only one toast at a time. Clipboard clears after configurable timeout (default 30s).
+**Phase 12 — Sync: On-Open Pull and On-Save Push**: Wire vault read/write to the sync path. Implement on-open check. Build `useSync` hook. Sync status indicator in the top bar.
 
 ## Open questions
 
-- ConfirmDialog uses `bg-surface-window` (`#141414`) but design tokens specify `surface.overlay` (`#2E2E2E`) for modals. Flagged in ui-registry.md as a deviation worth fixing in a future pass.
+- ConfirmDialog uses `bg-surface-window` (#141414) but design tokens specify `surface.overlay` (#2E2E2E) for modals. Flagged in ui-registry.md as a deviation.
+- `pick_vault_path` uses `blocking_pick_file` inside an async Rust command — consider making it non-async or using non-blocking picker if it causes issues.

@@ -44,7 +44,7 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
       </button>
 
       {!collapsed && (
-        <div className="mt-3 bg-surface-raised border border-white/8 rounded-md p-3 space-y-3">
+        <div className="mt-3 bg-surface-raised border border-border-subtle rounded-md p-3 space-y-3">
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs text-text-secondary">Length</label>
@@ -102,7 +102,7 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="w-full text-xs text-text-secondary border border-white/12 rounded-md px-3 py-1.5 hover:bg-surface-hover transition-colors disabled:opacity-40"
+            className="w-full text-xs text-text-secondary border border-border-subtle rounded-md px-3 py-1.5 hover:bg-surface-hover transition-colors disabled:opacity-40"
           >
             {generating ? 'Generating…' : 'Generate'}
           </button>

@@ -13,6 +13,7 @@ export type VaultConfig = {
   syncPath?: string;
   lockTimeoutMs: number;
   clipboardTimeoutMs: number;
+  clipboardAutoClear: boolean;
 };
 
 export type GeneratorOpts = {
