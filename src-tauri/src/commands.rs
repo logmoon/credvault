@@ -105,10 +105,10 @@ pub fn unlock_vault(
 }
 
 #[tauri::command]
-pub fn lock_vault(state: tauri::State<SessionState>) -> Result<(), String> {
-    let mut session = state.0.lock().map_err(|e| e.to_string())?;
-    *session = None;
-    Ok(())
+pub fn lock_vault(state: tauri::State<SessionState>) {
+    if let Ok(mut session) = state.0.lock() {
+        *session = None;
+    }
 }
 
 #[tauri::command]

@@ -29,7 +29,11 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       try {
         await saveVault(currentEntries);
       } catch {
-        console.error('Vault save failed');
+        // If the vault was locked while save was in flight, entries are already
+        // gone from context — no need to surface an error to the user.
+        if (entriesRef.current !== null) {
+          console.error('Vault save failed');
+        }
       }
 
       if (pendingSaveRef.current) {
@@ -51,7 +55,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     setEntries(null);
     setLocked(true);
     entriesRef.current = null;
-    lockVaultIpc().catch(() => console.error('Failed to clear server session'));
+    lockVaultIpc();
   }, []);
 
   // password and vaultPath are no longer needed on the frontend —
