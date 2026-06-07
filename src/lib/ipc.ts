@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { type Entry, type GeneratorOpts, type SyncStatus } from './types';
+import { type Entry, type GeneratorOpts } from './types';
 
 export async function createVault(password: string, path: string): Promise<void> {
   return invoke<void>('create_vault', { password, path });
@@ -25,30 +25,12 @@ export async function vaultExists(path: string): Promise<boolean> {
   return invoke<boolean>('vault_exists', { path });
 }
 
-export async function checkSync(localPath: string, syncPath: string): Promise<SyncStatus> {
-  try {
-    return await invoke<SyncStatus>('check_sync', { localPath, syncPath });
-  } catch {
-    return { status: 'ok' };
-  }
-}
-
-export async function resolveConflict(
-  keep: 'local' | 'sync',
-  conflictPath: string,
-  localPath: string,
-  syncPath: string,
-): Promise<void> {
-  return invoke<void>('resolve_conflict', { keep, conflictPath, localPath, syncPath });
-}
-
 export async function clearClipboard(): Promise<void> {
   return invoke<void>('clear_clipboard');
 }
 
 export async function saveConfig(config: {
   vaultPath: string;
-  syncPath?: string;
   lockTimeoutMs: number;
   clipboardTimeoutMs: number;
   clipboardAutoClear: boolean;
@@ -58,7 +40,6 @@ export async function saveConfig(config: {
 
 export async function loadConfig(): Promise<{
   vaultPath: string;
-  syncPath?: string;
   lockTimeoutMs: number;
   clipboardTimeoutMs: number;
   clipboardAutoClear: boolean;
@@ -76,4 +57,8 @@ export async function getDefaultVaultPath(): Promise<string> {
 
 export async function changeVaultPath(newPath: string): Promise<void> {
   return invoke<void>('change_vault_path', { newPath });
+}
+
+export async function checkConflict(vaultPath: string): Promise<string | null> {
+  return invoke<string | null>('check_conflict', { vaultPath });
 }

@@ -23,6 +23,7 @@ pub fn run() {
             commands::load_config,
             commands::pick_vault_path,
             commands::change_vault_path,
+            commands::check_conflict,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -10,7 +10,6 @@ export type Entry = {
 
 export type VaultConfig = {
   vaultPath: string;
-  syncPath?: string;
   lockTimeoutMs: number;
   clipboardTimeoutMs: number;
   clipboardAutoClear: boolean;
@@ -21,11 +20,4 @@ export type GeneratorOpts = {
   lowercase: boolean;
   numbers: boolean;
   symbols: boolean;
-};
-
-export type SyncStatus = {
-  status: 'ok' | 'pull' | 'conflict';
-  localTs?: number;
-  syncTs?: number;
-  conflictPath?: string;
 };

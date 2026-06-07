@@ -59,10 +59,11 @@ pub fn create_vault(password: String, path: String) -> Result<(), String> {
     let (nonce, ciphertext, tag) = crypto::encrypt(&key, &json).map_err(|e| e.to_string())?;
 
     let header = vault::VaultHeader {
-        version: 1,
+        version: 2,
         argon2_salt: salt,
         argon2_params: params,
         created_at: now,
+        modified_at: now,
     };
 
     let mut vault_bytes = vault::write_vault_header(&header);
@@ -124,7 +125,7 @@ pub async fn save_vault(
     entries: Vec<vault::Entry>,
     state: tauri::State<'_, SessionState>,
 ) -> Result<(), String> {
-    let (key, header, body_meta, path) = {
+    let (key, mut header, body_meta, path) = {
         let session = state.0.lock().map_err(|e| e.to_string())?;
         let s = session.as_ref().ok_or("Vault is not unlocked")?;
         (
@@ -141,14 +142,18 @@ pub async fn save_vault(
     };
 
     // No Argon2, no disk read, no decrypt — straight to encrypt + write
+    let modified_at = vault::now_timestamp();
     let body = vault::VaultBody {
         schema_version: body_meta.schema_version,
         vault_id: body_meta.vault_id,
         created_at: body_meta.created_at,
-        modified_at: vault::now_timestamp(),
+        modified_at,
         entries,
         deleted_entry_ids: body_meta.deleted_entry_ids,
     };
+
+    // Update header's modified_at so the plaintext header stays in sync
+    header.modified_at = modified_at;
 
     let json = serde_json::to_vec(&body).map_err(|e| e.to_string())?;
     let (nonce, ciphertext, tag) = crypto::encrypt(&key, &json).map_err(|e| e.to_string())?;
@@ -157,6 +162,7 @@ pub async fn save_vault(
     vault_bytes.extend_from_slice(&nonce);
     vault_bytes.extend_from_slice(&ciphertext);
     vault_bytes.extend_from_slice(&tag);
+
     vault::atomic_write(&path, &vault_bytes).map_err(|e| e.to_string())?;
 
     Ok(())
@@ -239,4 +245,24 @@ pub fn change_vault_path(
     config::write_config_to_app(&app, &cfg).map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+/// Scan a vault file's parent directory for a cloud-sync conflict copy.
+/// Returns the conflict file path, or null if none found.
+/// Matches any `.cvault` file containing "conflict" in its name (case-insensitive).
+#[tauri::command]
+pub fn check_conflict(vault_path: String) -> Result<Option<String>, String> {
+    let vault_path = PathBuf::from(&vault_path);
+    let dir = vault_path.parent().ok_or("Cannot determine vault directory")?;
+
+    let entries = std::fs::read_dir(dir).map_err(|e| e.to_string())?;
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let name = entry.file_name().to_string_lossy().to_lowercase();
+        if name.contains("conflict") && name.ends_with(".cvault") {
+            return Ok(Some(entry.path().to_string_lossy().to_string()));
+        }
+    }
+
+    Ok(None)
 }

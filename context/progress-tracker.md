@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** Phase 1 — Sync + Polish
-**Last completed:** 11 Settings Screen
-**Next:** 12 Sync — On-Open Pull and On-Save Push
+**Last completed:** 12 Sync (simplified — vault path = sync path)
+**Next:** 13 Conflict Resolution
 
 ---
 

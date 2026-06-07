@@ -6,16 +6,20 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use thiserror::Error;
 
 const MAGIC: &[u8; 7] = b"CREDVLT";
-const CURRENT_VERSION: u8 = 1;
-const HEADER_SIZE: usize = 44;
+const CURRENT_VERSION: u8 = 2;
+const HEADER_SIZE_V1: usize = 44;
+const HEADER_SIZE_V2: usize = 52;
 
-/// Plaintext header of a vault file (44 bytes).
+/// Plaintext header of a vault file.
+/// v1: 44 bytes (version == 1) — no modified_at, defaults to created_at.
+/// v2: 52 bytes (version >= 2) — includes modified_at for sync.
 #[derive(Debug, Clone)]
 pub struct VaultHeader {
     pub version: u8,
     pub argon2_salt: [u8; 16],
     pub argon2_params: Argon2Params,
     pub created_at: u64,
+    pub modified_at: u64,
 }
 
 #[derive(Error, Debug)]
@@ -81,7 +85,7 @@ pub fn now_timestamp() -> u64 {
         .as_secs()
 }
 
-/// Serialize a vault header into 44 bytes.
+/// Serialize a vault header into 52 bytes (v2 format).
 ///
 /// Layout:
 ///   [0..7]   magic:       "CREDVLT"
@@ -91,8 +95,9 @@ pub fn now_timestamp() -> u64 {
 ///   [28..32] iterations:  u32 LE
 ///   [32..36] parallelism: u32 LE
 ///   [36..44] created_at:  u64 LE
+///   [44..52] modified_at: u64 LE
 pub fn write_vault_header(header: &VaultHeader) -> Vec<u8> {
-    let mut buf = Vec::with_capacity(HEADER_SIZE);
+    let mut buf = Vec::with_capacity(HEADER_SIZE_V2);
 
     buf.extend_from_slice(MAGIC);
     buf.push(header.version);
@@ -101,15 +106,17 @@ pub fn write_vault_header(header: &VaultHeader) -> Vec<u8> {
     buf.extend_from_slice(&header.argon2_params.iterations.to_le_bytes());
     buf.extend_from_slice(&header.argon2_params.parallelism.to_le_bytes());
     buf.extend_from_slice(&header.created_at.to_le_bytes());
+    buf.extend_from_slice(&header.modified_at.to_le_bytes());
 
-    debug_assert_eq!(buf.len(), HEADER_SIZE);
+    debug_assert_eq!(buf.len(), HEADER_SIZE_V2);
     buf
 }
 
 /// Parse a vault header from raw bytes.
-/// Validates magic bytes and version.
+/// Supports v1 (44 bytes) and v2 (52 bytes) formats.
+/// v1 files default modified_at to created_at.
 pub fn parse_vault_header(bytes: &[u8]) -> Result<VaultHeader, VaultError> {
-    if bytes.len() < HEADER_SIZE {
+    if bytes.len() < HEADER_SIZE_V1 {
         return Err(VaultError::UnexpectedEof);
     }
 
@@ -120,6 +127,11 @@ pub fn parse_vault_header(bytes: &[u8]) -> Result<VaultHeader, VaultError> {
     let version = bytes[7];
     if version > CURRENT_VERSION {
         return Err(VaultError::UnsupportedVersion(version));
+    }
+
+    let header_size = if version == 1 { HEADER_SIZE_V1 } else { HEADER_SIZE_V2 };
+    if bytes.len() < header_size {
+        return Err(VaultError::UnexpectedEof);
     }
 
     let mut salt = [0u8; 16];
@@ -141,6 +153,14 @@ pub fn parse_vault_header(bytes: &[u8]) -> Result<VaultHeader, VaultError> {
     created.copy_from_slice(&bytes[36..44]);
     let created_at = u64::from_le_bytes(created);
 
+    let modified_at = if version == 1 {
+        created_at
+    } else {
+        let mut modified = [0u8; 8];
+        modified.copy_from_slice(&bytes[44..52]);
+        u64::from_le_bytes(modified)
+    };
+
     Ok(VaultHeader {
         version,
         argon2_salt: salt,
@@ -150,6 +170,7 @@ pub fn parse_vault_header(bytes: &[u8]) -> Result<VaultHeader, VaultError> {
             parallelism,
         },
         created_at,
+        modified_at,
     })
 }
 
@@ -181,17 +202,23 @@ pub fn atomic_write(path: &Path, data: &[u8]) -> Result<(), VaultError> {
 
 /// Read a vault file and parse its header.
 ///
-/// Returns `(VaultHeader, encrypted_payload)` where encrypted_payload
-/// is the remaining bytes after the 44-byte header (nonce + ciphertext + tag).
+/// Reads 52 bytes (v2 header size), then determines actual header size from
+/// the version byte. For v1 files, bytes 44..52 are the start of the payload.
+/// Returns `(VaultHeader, encrypted_payload)`.
 pub fn read_vault(path: &Path) -> Result<(VaultHeader, Vec<u8>), VaultError> {
     let mut file = std::fs::File::open(path)?;
 
-    let mut header_buf = [0u8; HEADER_SIZE];
+    // Always read enough for a v2 header. parse_vault_header handles v1 vs v2.
+    let mut header_buf = [0u8; HEADER_SIZE_V2];
     file.read_exact(&mut header_buf)?;
 
     let header = parse_vault_header(&header_buf)?;
 
     let mut payload = Vec::new();
+    // For v1 files, bytes HEADER_SIZE_V1..HEADER_SIZE_V2 in header_buf are payload
+    if header.version == 1 {
+        payload.extend_from_slice(&header_buf[HEADER_SIZE_V1..HEADER_SIZE_V2]);
+    }
     file.read_to_end(&mut payload)?;
 
     Ok((header, payload))
@@ -210,7 +237,7 @@ mod tests {
         }};
     }
 
-    fn sample_header() -> VaultHeader {
+    fn sample_header_v1() -> VaultHeader {
         VaultHeader {
             version: 1,
             argon2_salt: [
@@ -223,14 +250,32 @@ mod tests {
                 parallelism: 4,
             },
             created_at: 1_700_000_000,
+            modified_at: 1_700_000_000,
+        }
+    }
+
+    fn sample_header_v2() -> VaultHeader {
+        VaultHeader {
+            version: 2,
+            argon2_salt: [
+                0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
+                0x0e, 0x0f, 0x10,
+            ],
+            argon2_params: Argon2Params {
+                memory: 65_536,
+                iterations: 3,
+                parallelism: 4,
+            },
+            created_at: 1_700_000_000,
+            modified_at: 1_700_100_000,
         }
     }
 
     #[test]
-    fn header_write_read_round_trip() {
-        let original = sample_header();
+    fn header_v2_write_read_round_trip() {
+        let original = sample_header_v2();
         let bytes = write_vault_header(&original);
-        assert_eq!(bytes.len(), HEADER_SIZE);
+        assert_eq!(bytes.len(), HEADER_SIZE_V2);
 
         let parsed = parse_vault_header(&bytes).unwrap();
         assert_eq!(parsed.version, original.version);
@@ -245,11 +290,68 @@ mod tests {
             original.argon2_params.parallelism
         );
         assert_eq!(parsed.created_at, original.created_at);
+        assert_eq!(parsed.modified_at, original.modified_at);
+    }
+
+    #[test]
+    fn header_v1_backward_compatible() {
+        // Write a v1 header (44 bytes) and verify parse handles it
+        let original = sample_header_v1();
+        let mut bytes = Vec::with_capacity(HEADER_SIZE_V1);
+        bytes.extend_from_slice(MAGIC);
+        bytes.push(1);
+        bytes.extend_from_slice(&original.argon2_salt);
+        bytes.extend_from_slice(&original.argon2_params.memory.to_le_bytes());
+        bytes.extend_from_slice(&original.argon2_params.iterations.to_le_bytes());
+        bytes.extend_from_slice(&original.argon2_params.parallelism.to_le_bytes());
+        bytes.extend_from_slice(&original.created_at.to_le_bytes());
+
+        // Parsing a v1 header from a v2-sized buffer (52 bytes)
+        let mut padded = bytes.clone();
+        padded.resize(HEADER_SIZE_V2, 0xFF);
+        let parsed = parse_vault_header(&padded).unwrap();
+        assert_eq!(parsed.version, 1);
+        assert_eq!(parsed.created_at, original.created_at);
+        // v1 should default modified_at to created_at
+        assert_eq!(parsed.modified_at, original.created_at);
+
+        // Parsing from exactly 44 bytes should also work
+        let parsed2 = parse_vault_header(&bytes).unwrap();
+        assert_eq!(parsed2.version, 1);
+        assert_eq!(parsed2.modified_at, original.created_at);
+    }
+
+    #[test]
+    fn header_v1_payload_offset_correct() {
+        // Verify that a v1 file's payload starts at byte 44, not 52
+        let original = sample_header_v1();
+        let mut header_bytes = Vec::with_capacity(HEADER_SIZE_V1);
+        header_bytes.extend_from_slice(MAGIC);
+        header_bytes.push(1);
+        header_bytes.extend_from_slice(&original.argon2_salt);
+        header_bytes.extend_from_slice(&original.argon2_params.memory.to_le_bytes());
+        header_bytes.extend_from_slice(&original.argon2_params.iterations.to_le_bytes());
+        header_bytes.extend_from_slice(&original.argon2_params.parallelism.to_le_bytes());
+        header_bytes.extend_from_slice(&original.created_at.to_le_bytes());
+
+        let payload_bytes = b"THIS_IS_THE_PAYLOAD_NONCE_CIPHERTEXT_TAG";
+        let mut vault_data = header_bytes.clone();
+        vault_data.extend_from_slice(payload_bytes);
+
+        let path = temp_vault_path!();
+        std::fs::write(&path, &vault_data).unwrap();
+
+        let (parsed, payload) = read_vault(&path).unwrap();
+        assert_eq!(parsed.version, 1);
+        assert_eq!(parsed.modified_at, original.created_at);
+        assert_eq!(payload, payload_bytes);
+
+        std::fs::remove_file(&path).unwrap();
     }
 
     #[test]
     fn invalid_magic_returns_error() {
-        let mut bytes = write_vault_header(&sample_header());
+        let mut bytes = write_vault_header(&sample_header_v2());
         bytes[0] = 0x00; // corrupt magic
 
         let result = parse_vault_header(&bytes);
@@ -259,7 +361,7 @@ mod tests {
 
     #[test]
     fn unsupported_version_returns_error() {
-        let mut header = sample_header();
+        let mut header = sample_header_v2();
         header.version = 255;
         let bytes = write_vault_header(&header);
 
@@ -342,21 +444,20 @@ mod tests {
     }
 
     #[test]
-    fn full_vault_write_read_round_trip() {
+    fn full_vault_v2_write_read_round_trip() {
         let path = temp_vault_path!();
-        let header = sample_header();
+        let header = sample_header_v2();
         let payload = b"encrypted nonce+ciphertext+tag bytes here";
 
-        // Write: header bytes + payload
         let mut vault_bytes = write_vault_header(&header);
         vault_bytes.extend_from_slice(payload);
         std::fs::write(&path, &vault_bytes).unwrap();
 
-        // Read back
         let (parsed_header, parsed_payload) = read_vault(&path).unwrap();
         assert_eq!(parsed_header.version, header.version);
         assert_eq!(parsed_header.argon2_salt, header.argon2_salt);
         assert_eq!(parsed_header.created_at, header.created_at);
+        assert_eq!(parsed_header.modified_at, header.modified_at);
         assert_eq!(parsed_payload, payload);
 
         std::fs::remove_file(&path).unwrap();

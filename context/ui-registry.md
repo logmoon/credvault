@@ -305,6 +305,27 @@ Last updated: 2026-06-07
 - Sync Now button is always disabled until Phase 12.
 - ConfirmDialog overlay shown for vault path overwrite confirmation — uses existing ConfirmDialog component.
 
+### Conflict Banner
+
+File: `src/components/VaultShell.tsx`
+Last updated: 2026-06-07
+
+| Property | Class |
+|---|---|
+| Banner background | `bg-surface-raised` |
+| Banner border | `border-b border-border border-l-4 border-status-warning` |
+| Banner padding | `px-6 py-2` |
+| Container layout | `flex items-center justify-between` |
+| Text | `text-xs text-status-warning` |
+| Icon | `AlertTriangle` lucide-react `size={14}` |
+| Button — warning | `text-xs font-medium text-status-warning border border-status-warning/30 rounded-md px-3 py-1 hover:bg-status-warning/15 transition-colors` |
+
+**Pattern notes:**
+- Persistent banner below the header — visible until conflict is resolved.
+- Amber left border (`border-l-4 border-status-warning`) matches the first-run warning callout pattern in LockScreen.
+- "Resolve" button opens Settings (Phase 13 to be replaced with dedicated resolution dialog).
+- Uses the same `bg-surface-raised` as Settings cards — consistent with other section backgrounds.
+
 ### AutoLockToast (inline)
 
 File: `src/App.tsx`

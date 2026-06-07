@@ -1,14 +1,16 @@
 import { useState, useCallback, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import { useVault } from '../context/VaultContext';
 import { pickVaultPath, vaultExists, changeVaultPath } from '../lib/ipc';
 import { ConfirmDialog } from './ConfirmDialog';
 
 type SettingsProps = {
   onClose: () => void;
+  checkForConflicts: () => Promise<void>;
+  hasConflict: boolean;
 };
 
-export function Settings({ onClose }: SettingsProps) {
+export function Settings({ onClose, checkForConflicts, hasConflict }: SettingsProps) {
   const { config, updateConfig } = useVault();
   const [confirmOverwrite, setConfirmOverwrite] = useState<string | null>(null);
 
@@ -178,22 +180,33 @@ export function Settings({ onClose }: SettingsProps) {
             </div>
           </section>
 
-          {/* Sync section */}
+          {/* Conflict section */}
           <section>
             <h3 className="text-xs text-text-muted uppercase tracking-wider font-medium mb-2">
-              Sync
+              Sync Conflicts
             </h3>
-            <div className="bg-surface-raised border border-border rounded-lg p-4">
-              <button
-                disabled
-                className="w-full text-sm text-text-muted border border-border rounded-md px-3 py-1.5 opacity-40 cursor-not-allowed"
-                title="Coming in a future update"
-              >
-                Sync now
-              </button>
-              <p className="text-xs text-text-muted mt-2">
-                Sync to any folder path. Configured in a future update.
+            <div className="bg-surface-raised border border-border rounded-lg p-4 space-y-3">
+              <p className="text-xs text-text-secondary">
+                The vault file path IS the sync path — point it at any folder
+                managed by Dropbox, iCloud, OneDrive, or another sync provider.
+                The provider moves the encrypted file between devices.
               </p>
+              {hasConflict ? (
+                <div className="flex items-center gap-2 text-xs text-status-warning">
+                  <AlertTriangle size={14} />
+                  <span>Conflict copy detected — resolution coming in a future update</span>
+                </div>
+              ) : (
+                <p className="text-xs text-text-muted">
+                  No conflicts detected
+                </p>
+              )}
+              <button
+                onClick={checkForConflicts}
+                className="w-full text-sm text-text-secondary border border-border rounded-md px-3 py-1.5 hover:bg-surface-hover transition-colors"
+              >
+                Check for conflicts
+              </button>
             </div>
           </section>
         </div>

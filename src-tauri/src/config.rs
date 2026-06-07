@@ -15,8 +15,6 @@ pub enum ConfigError {
 #[serde(rename_all = "camelCase")]
 pub struct VaultConfig {
     pub vault_path: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub sync_path: Option<String>,
     pub lock_timeout_ms: u64,
     pub clipboard_timeout_ms: u64,
     pub clipboard_auto_clear: bool,
@@ -26,7 +24,6 @@ impl Default for VaultConfig {
     fn default() -> Self {
         Self {
             vault_path: String::new(),
-            sync_path: None,
             lock_timeout_ms: 300_000,
             clipboard_timeout_ms: 30_000,
             clipboard_auto_clear: true,
