@@ -102,7 +102,7 @@ export function PasswordGenerator({ onGenerate }: PasswordGeneratorProps) {
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="w-full text-xs text-text-secondary border border-border-subtle rounded-md px-3 py-1.5 hover:bg-surface-hover transition-colors disabled:opacity-40"
+            className="w-full text-xs text-text-secondary border border-border-subtle rounded-md px-3 py-1.5 hover:bg-surface-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {generating ? 'Generating…' : 'Generate'}
           </button>

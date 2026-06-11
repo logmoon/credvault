@@ -70,7 +70,7 @@ export function UnlockView({
         {pickerOpen && (
           <div
             ref={pickerRef}
-            className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[320px] bg-surface-overlay border border-border-subtle rounded-lg shadow-sm z-50 p-3"
+            className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[320px] bg-surface-overlay border border-border-subtle rounded-lg z-50 p-3"
           >
             <p className="text-xs text-text-muted mb-2">Switch vault</p>
 
@@ -149,7 +149,7 @@ export function UnlockView({
           <button
             onClick={onUnlock}
             disabled={submitting || !vaultPath || !password}
-            className="bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+            className="bg-accent hover:bg-accent-dark disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
           >
             {submitting ? 'Unlocking…' : 'Unlock'}
           </button>

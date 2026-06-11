@@ -38,7 +38,7 @@ export function Settings({ onClose }: SettingsProps) {
       onClick={onClose}
     >
       <div
-        className="bg-surface-window border border-border rounded-xl w-[600px] max-w-[90vw] max-h-[80vh] flex flex-col"
+        className="bg-surface-overlay border border-border rounded-xl w-[600px] max-w-[90vw] max-h-[80vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-6 pb-4 border-b border-border-strong shrink-0">

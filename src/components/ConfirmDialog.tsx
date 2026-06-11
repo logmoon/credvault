@@ -36,7 +36,7 @@ export function ConfirmDialog({
       onClick={onCancel}
     >
       <div
-        className="bg-surface-window border border-border-subtle rounded-xl p-6 w-full max-w-[400px]"
+        className="bg-surface-overlay border border-border-subtle rounded-xl p-6 w-full max-w-[400px]"
         onClick={e => e.stopPropagation()}
       >
         <h3 className="text-sm text-text-primary font-medium mb-2">{title}</h3>
@@ -51,7 +51,7 @@ export function ConfirmDialog({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`text-sm font-medium px-4 py-2 rounded-md transition-colors disabled:opacity-40 ${
+            className={`text-sm font-medium px-4 py-2 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
               destructive
                 ? 'text-status-error border border-status-error/30 hover:bg-status-error/15'
                 : 'bg-accent hover:bg-accent-dark text-white'

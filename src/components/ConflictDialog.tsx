@@ -86,7 +86,7 @@ export function ConflictDialog({ vaultPath, conflictPaths, onClose, onResolved, 
       onClick={disabled ? undefined : onClose}
     >
       <div
-        className="bg-surface-window border border-border-subtle rounded-xl w-full max-w-[460px]"
+        className="bg-surface-overlay border border-border-subtle rounded-xl w-full max-w-[460px]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

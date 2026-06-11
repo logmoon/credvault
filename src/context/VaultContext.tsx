@@ -8,6 +8,7 @@ type VaultState = {
   config: VaultConfig | null;
   lastLockReason: 'inactivity' | null;
   hasBlockingConflict: boolean;
+  error: string | null;
   lockVault: (reason?: 'inactivity') => void;
   unlockVault: (entries: Entry[]) => void;
   addEntry: (entry: Entry) => void;
@@ -16,6 +17,8 @@ type VaultState = {
   updateConfig: (fields: Partial<VaultConfig>) => void;
   clearLockReason: () => void;
   clearBlockingConflict: () => void;
+  addError: (msg: string) => void;
+  clearError: () => void;
 };
 
 const VaultContext = createContext<VaultState | null>(null);
@@ -26,6 +29,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<VaultConfig | null>(null);
   const [lastLockReason, setLastLockReason] = useState<'inactivity' | null>(null);
   const [hasBlockingConflict, setHasBlockingConflict] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const entriesRef = useRef<Entry[] | null>(null);
   const configRef = useRef<VaultConfig | null>(null);
   const savePromiseRef = useRef<Promise<void> | null>(null);
@@ -63,7 +67,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         // If the vault was locked while save was in flight, entries are already
         // gone from context — no need to surface an error to the user.
         if (entriesRef.current !== null) {
-          console.error('Vault save failed');
+          addError('Failed to save vault');
         }
       }
 
@@ -102,6 +106,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     setLastLockReason(reason ?? null);
     entriesRef.current = null;
     setHasBlockingConflict(false);
+    setError(null);
     lockVaultIpc();
   }, []);
 
@@ -133,6 +138,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   }, [triggerSave]);
 
   const clearLockReason = useCallback(() => setLastLockReason(null), []);
+
+  const addError = useCallback((msg: string) => setError(msg), []);
+
+  const clearError = useCallback(() => setError(null), []);
 
   const clearBlockingConflict = useCallback(() => {
     setHasBlockingConflict(false);
@@ -168,6 +177,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     config,
     lastLockReason,
     hasBlockingConflict,
+    error,
     lockVault,
     unlockVault,
     addEntry,
@@ -176,7 +186,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     updateConfig,
     clearLockReason,
     clearBlockingConflict,
-  }), [locked, entries, config, lastLockReason, hasBlockingConflict, lockVault, unlockVault, addEntry, updateEntry, deleteEntry, updateConfig, clearLockReason, clearBlockingConflict]);
+    addError,
+    clearError,
+  }), [locked, entries, config, lastLockReason, hasBlockingConflict, error, lockVault, unlockVault, addEntry, updateEntry, deleteEntry, updateConfig, clearLockReason, clearBlockingConflict, addError, clearError]);
 
   return (
     <VaultContext.Provider value={value}>

@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { VaultProvider, useVault } from './context/VaultContext';
 import { useSync } from './hooks/useSync';
 import { LockScreen } from './components/LockScreen';
 import { VaultShell } from './components/VaultShell';
+import { ErrorToast } from './components/ErrorToast';
 
 function LoadingState({ message }: { message: string }) {
   return (
@@ -12,8 +13,21 @@ function LoadingState({ message }: { message: string }) {
   );
 }
 
+function FadeIn({ children }: { children: ReactNode }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return (
+    <div className={`transition-opacity duration-150 ${visible ? 'opacity-100' : 'opacity-0'}`}>
+      {children}
+    </div>
+  );
+}
+
 function AppContent() {
-  const { locked, config, lastLockReason, clearLockReason } = useVault();
+  const { locked, config, lastLockReason, clearLockReason, error, clearError } = useVault();
   const { conflictPaths, hasConflict, checkForConflicts } = useSync();
 
   // Re-check conflicts when vault unlocks
@@ -38,13 +52,19 @@ function AppContent() {
 
   return (
     <>
-      {locked ? <LockScreen /> : <VaultShell hasConflict={hasConflict} conflictPaths={conflictPaths} checkForConflicts={checkForConflicts} />}
+      {locked ? (
+        <FadeIn key="lock"><LockScreen /></FadeIn>
+      ) : (
+        <FadeIn key="unlock"><VaultShell hasConflict={hasConflict} conflictPaths={conflictPaths} checkForConflicts={checkForConflicts} /></FadeIn>
+      )}
 
       {lastLockReason === 'inactivity' && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-surface-overlay border border-border-subtle rounded-lg px-4 py-2.5 text-xs text-text-primary z-50 shadow-sm">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-surface-overlay border border-border-subtle rounded-lg px-4 py-2.5 text-xs text-text-primary z-50">
           Vault locked — inactivity timeout
         </div>
       )}
+
+      <ErrorToast message={error} onDismiss={clearError} />
     </>
   );
 }

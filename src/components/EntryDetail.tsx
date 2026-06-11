@@ -119,7 +119,7 @@ export function EntryDetail({ entryId, onClose }: EntryDetailProps) {
         <button
           onClick={handleSave}
           disabled={submitting || !values.title.trim()}
-          className="bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+          className="bg-accent hover:bg-accent-dark disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
         >
           Save
         </button>
