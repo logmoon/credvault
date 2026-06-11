@@ -1,41 +1,59 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useVault } from '../context/VaultContext';
-import { checkConflict } from '../lib/ipc';
+import { checkConflicts } from '../lib/ipc';
 
 type UseSyncReturn = {
+  conflictPaths: string[];
   hasConflict: boolean;
-  conflictPath: string | null;
   checkForConflicts: () => Promise<void>;
 };
 
 export function useSync(): UseSyncReturn {
   const { config } = useVault();
-  const [hasConflict, setHasConflict] = useState(false);
-  const [conflictPath, setConflictPath] = useState<string | null>(null);
-  const hasRunRef = useRef(false);
+  const [conflictPaths, setConflictPaths] = useState<string[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const checkForConflicts = useCallback(async () => {
     if (!config?.vaultPath) return;
     try {
-      const result = await checkConflict(config.vaultPath);
-      if (result) {
-        setHasConflict(true);
-        setConflictPath(result);
-      } else {
-        setHasConflict(false);
-        setConflictPath(null);
-      }
+      const paths = await checkConflicts(config.vaultPath);
+      setConflictPaths(paths);
     } catch {
-      setHasConflict(false);
-      setConflictPath(null);
+      setConflictPaths([]);
     }
   }, [config?.vaultPath]);
 
+  // Poll for conflicts every 10s while unlocked
+  const { locked } = useVault();
   useEffect(() => {
-    if (!config || hasRunRef.current) return;
-    hasRunRef.current = true;
-    checkForConflicts();
-  }, [config, checkForConflicts]);
+    if (locked && intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+      return;
+    }
 
-  return { hasConflict, conflictPath, checkForConflicts };
+    if (!locked && !intervalRef.current) {
+      intervalRef.current = setInterval(() => {
+        checkForConflicts();
+      }, 10_000);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [locked, checkForConflicts]);
+
+  // Re-check when vaultPath changes
+  useEffect(() => {
+    checkForConflicts();
+  }, [checkForConflicts]);
+
+  return {
+    conflictPaths,
+    hasConflict: conflictPaths.length > 0,
+    checkForConflicts,
+  };
 }

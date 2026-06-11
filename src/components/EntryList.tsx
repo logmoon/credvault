@@ -9,15 +9,25 @@ type EntryListProps = {
   onCopyPassword: (id: string) => void;
   onOpenUrl: (url: string) => void;
   isValidUrl: (url: string) => boolean;
+  searchQuery?: string;
 };
 
-export function EntryList({ entries, selectedId, onSelect, onCopyUsername, onCopyPassword, onOpenUrl, isValidUrl }: EntryListProps) {
+export function EntryList({ entries, selectedId, onSelect, onCopyUsername, onCopyPassword, onOpenUrl, isValidUrl, searchQuery }: EntryListProps) {
   if (entries.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-sm text-text-secondary">No entries yet</p>
-          <p className="text-xs text-text-muted mt-1">Add your first credential to get started</p>
+          {searchQuery ? (
+            <>
+              <p className="text-sm text-text-secondary">No entries match</p>
+              <p className="text-xs text-text-muted mt-1 break-all">&ldquo;{searchQuery}&rdquo;</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-text-secondary">No entries yet</p>
+              <p className="text-xs text-text-muted mt-1">Add your first credential to get started</p>
+            </>
+          )}
         </div>
       </div>
     );

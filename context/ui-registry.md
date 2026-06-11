@@ -9,11 +9,42 @@ _Written by `/imprint` after building any UI component. Read this before buildin
 ### LockScreen
 
 File: `src/components/LockScreen.tsx`
-Last updated: 2026-06-07
+Last updated: 2026-06-09
+
+Orchestrator that determines which view to render. Does not own form UI — delegates to `UnlockView` or `CreateVaultView`.
 
 | Property | Class |
 |---|---|
 | Page background | `bg-surface-window` |
+| App title | `text-sm text-text-secondary font-medium` |
+| Tagline / caption | `text-xs text-text-muted` |
+| Loading text | `text-sm text-text-muted` |
+
+**Pattern notes:**
+- Lock screen content area is constrained to `w-[360px]` max, centered with slight upward offset (`paddingTop: 5vh`).
+- On mount, loads config, resolves vault path, checks `vaultExists`. Sets mode to `'unlock'` or `'create'`.
+- Owns shared state: `vaultPath`, `vaultName`, `password`, `error`, `submitting`.
+- Passes setters down as props to sub-views.
+
+---
+
+### UnlockView
+
+File: `src/components/UnlockView.tsx`
+Last updated: 2026-06-09
+
+Unlock form with vault picker. Used when a vault exists at the configured path.
+
+| Property | Class |
+|---|---|
+| Vault picker button | `w-full flex items-center justify-center gap-1.5 text-sm text-text-primary font-medium hover:text-accent transition-colors` |
+| Vault name text | `truncate` |
+| Picker dropdown | `absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[320px] bg-surface-overlay border border-border-subtle rounded-lg shadow-sm z-50 p-3` |
+| Picker heading | `text-xs text-text-muted mb-2` |
+| Picker recent vault item | `w-full text-left px-3 py-2 rounded-md text-xs text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors` |
+| Picker recent vault name | `text-xs font-medium` |
+| Picker recent vault path | `text-xs text-text-muted truncate` |
+| Picker action button | `flex items-center gap-2 w-full text-left px-3 py-2 rounded-md text-xs text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors` |
 | Input background | `bg-surface` |
 | Input border | `border border-border-subtle` |
 | Input radius | `rounded-md` |
@@ -21,24 +52,57 @@ Last updated: 2026-06-07
 | Input text | `text-sm text-text-primary font-mono` |
 | Input placeholder | `placeholder-text-muted` |
 | Input focus | `focus:outline-none focus:border-accent/50` |
+| Input disabled | `disabled:opacity-40 disabled:cursor-not-allowed` |
 | Input appearance | `appearance-none` |
-| Label text | `text-xs text-text-secondary` |
-| Label bottom margin | `mb-1.5` |
-| Label font | `font-mono` (for credential fields) |
-| Button — primary | `bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
-| Button — icon ghost | `p-1 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` |
-| App title | `text-sm text-text-secondary font-medium` |
-| Tagline / caption | `text-xs text-text-muted` |
+| Label text | `text-xs text-text-secondary mb-1.5 font-mono` |
 | Error text | `text-xs text-status-error` |
-| Warning callout | `bg-surface-raised border-l-4 border-status-warning rounded-r-md p-4` with `text-xs leading-relaxed text-status-warning` |
-| Icon size (inline) | `size={16}` (lucide-react) |
+| Button — primary | `bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
 
 **Pattern notes:**
-- Lock screen content area is constrained to `w-[360px]` max, centered with slight upward offset (`paddingTop: 5vh`).
-- Inputs with icon insets use additional `pr-10` padding to prevent text overlap with the icon button.
-- Custom password reveal toggle uses lucide-react `Eye`/`EyeOff` icons positioned `absolute right-2 top-1/2 -translate-y-1/2` inside a `relative` wrapper.
-- Every input that uses a reveal toggle should also suppress the browser-native toggle with `appearance-none` and CSS pseudo-element rules in `index.css`.
-- Inputs use `border-border-subtle` as the default state, switching to `border-status-error/60` on validation error.
+- Password input disabled when `vaultPath` is empty — forces user to select a vault first.
+- Placeholder changes based on vaultPath: `'Select a vault first'` vs `'Enter master password'`.
+- Picker click-outside uses `mousedown` event with `pickerRef` and `buttonRef` exclusion.
+- Recent vaults limited to `slice(0, 3)` with `max-h-[200px] overflow-y-auto`.
+- `autoFocus` only when vaultPath is set (`autoFocus={!!vaultPath}`).
+
+---
+
+### CreateVaultView
+
+File: `src/components/CreateVaultView.tsx`
+Last updated: 2026-06-09
+
+Create vault form. Used when no vault exists at the configured path.
+
+| Property | Class |
+|---|---|
+| Title | rendered by LockScreen: `text-sm text-text-muted text-center` |
+| Input background | `bg-surface` |
+| Input border | `border border-border-subtle` |
+| Input radius | `rounded-md` |
+| Input padding | `px-3 py-2` |
+| Input text | `text-sm text-text-primary` (name field), `font-mono` (password fields) |
+| Input placeholder | `placeholder-text-muted` |
+| Input focus | `focus:outline-none focus:border-accent/50` |
+| Input appearance | `appearance-none` |
+| Label text | `text-xs text-text-secondary mb-1.5` |
+| Label — password | `font-mono` (adds mono font for password labels) |
+| Reveal toggle | `absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` with `tabIndex={-1}` |
+| Error text | `text-xs text-status-error` |
+| Warning callout | `bg-surface-raised border-l-4 border-status-warning rounded-r-md p-4` with `text-xs leading-relaxed text-status-warning` |
+| Save location display | `flex-1 bg-surface border border-border-subtle rounded-md px-3 py-2 text-xs text-text-muted truncate` |
+| Save location button | `flex items-center gap-1.5 text-xs text-text-secondary border border-border rounded-md px-3 py-2 hover:bg-surface-hover transition-colors shrink-0` |
+| Button — primary | `bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
+| Switch link | `w-full text-center text-xs text-text-muted hover:text-text-secondary transition-colors mt-3` |
+
+**Pattern notes:**
+- Owns local state: `newVaultName`, `confirmPassword`, `showPassword`, `showConfirmPassword`, `localError`, `saveFolder`.
+- Validates form fields locally before calling `onCreate(vaultName)`.
+- `displayError = localError || error` — local form validation takes precedence over submission errors.
+- All validation (name required, password required, password match) happens in component — LockScreen receives only the validated vault name.
+- Password defaults to visible (`showPassword` starts `false` — hidden by default).
+- Auto-focuses on vault name input.
+- Save location section: folder path display + "Change" button opens native folder picker via `pickFolder()`. `useEffect` syncs `saveFolder` when `defaultFolder` prop arrives async.
 
 ### EntryRow
 
@@ -308,23 +372,65 @@ Last updated: 2026-06-07
 ### Conflict Banner
 
 File: `src/components/VaultShell.tsx`
-Last updated: 2026-06-07
+Last updated: 2026-06-11
 
 | Property | Class |
 |---|---|
 | Banner background | `bg-surface-raised` |
-| Banner border | `border-b border-border border-l-4 border-status-warning` |
-| Banner padding | `px-6 py-2` |
-| Container layout | `flex items-center justify-between` |
-| Text | `text-xs text-status-warning` |
-| Icon | `AlertTriangle` lucide-react `size={14}` |
-| Button — warning | `text-xs font-medium text-status-warning border border-status-warning/30 rounded-md px-3 py-1 hover:bg-status-warning/15 transition-colors` |
+| Banner border | `border-b border-border` |
+| Banner padding | `px-6 py-3` |
+| Banner layout | `flex items-center justify-between` |
+| Icon container | `bg-status-warning/15 rounded-md p-1.5` |
+| Icon | `AlertTriangle size={14} text-status-warning` |
+| Text — title | `text-sm text-text-primary font-medium` |
+| Text — subtitle | `text-xs text-text-muted mt-0.5` |
+| Button — Review | `text-sm font-medium text-text-secondary border border-border rounded-md px-4 py-1.5 hover:bg-surface-hover hover:text-text-primary transition-colors` |
 
 **Pattern notes:**
-- Persistent banner below the header — visible until conflict is resolved.
-- Amber left border (`border-l-4 border-status-warning`) matches the first-run warning callout pattern in LockScreen.
-- "Resolve" button opens Settings (Phase 13 to be replaced with dedicated resolution dialog).
-- Uses the same `bg-surface-raised` as Settings cards — consistent with other section backgrounds.
+- Persistent notification bar below the header — visible until conflict is resolved.
+- Two-line layout: title line + subtitle line with conflict count.
+- Alert icon sits in a tinted rounded box rather than a raw icon, giving it more visual weight without being flashy.
+- "Review" button matches secondary/ghost button pattern (`border border-border`, `hover:bg-surface-hover`).
+- Replaced the previous `border-l-4 border-status-warning` heavy left-border approach with a cleaner inline icon box. The warning color is now used as a background tint rather than a border accent.
+
+### ConflictDialog
+
+File: `src/components/ConflictDialog.tsx`
+Last updated: 2026-06-11
+
+| Property | Class |
+|---|---|
+| Overlay | `fixed inset-0 bg-black/60 flex items-center justify-center z-50` |
+| Dialog background | `bg-surface-window` |
+| Dialog border | `border border-border-subtle` |
+| Dialog radius | `rounded-xl` |
+| Dialog width | `max-w-[460px]` |
+| Dialog layout | `flex flex-col` |
+| Header layout | `flex items-center justify-between p-5 pb-0` |
+| Header title | `text-sm text-text-primary font-medium` with `AlertTriangle size={16} text-status-warning` |
+| Close button | `p-1 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` with `X size={16}` |
+| Description text | `text-sm text-text-secondary px-5 pt-2 pb-3` |
+| Loading text | `text-sm text-text-muted text-center py-6` |
+| Error text | `text-xs text-status-error mb-3` |
+| Vault option card | `w-full text-left bg-surface-raised border border-border-subtle rounded-lg p-4 cursor-pointer hover:border-accent/40 transition-colors` |
+| Card — title | `text-sm text-text-primary font-medium` |
+| Card — timestamp | `text-xs text-text-muted mt-1` |
+| Card — keep label | `text-xs text-accent font-medium` |
+| Card — conflict filename | `text-sm text-text-primary font-medium truncate` |
+| Card layout | `flex items-start justify-between gap-3` |
+| Cards container | `px-5 pb-5 space-y-2 max-h-[50vh] overflow-y-auto` |
+| Footer separator | `border-t border-border` |
+| Footer layout | `flex items-center justify-end gap-2 px-5 py-4` |
+| Button — Cancel | `text-sm text-text-secondary border border-border-subtle rounded-md px-4 py-2 hover:bg-surface-hover transition-colors` |
+
+**Pattern notes:**
+- Full-screen overlay modal. Overlay click closes (disabled during loading/resolving); Escape closes via keydown listener.
+- Loads conflict info on mount via `getConflictsInfo` IPC call. Renders once data arrives.
+- Shows current vault as the first option card, followed by all conflict copies with their filenames and timestamps.
+- "Keep this" label in accent color on the right of each card — user clicks the entire card to choose.
+- Choosing "Current vault" deletes all conflicts (result: "resolved"). Choosing a conflict copy copies it over the vault (result: "locked" → vault is locked for re-unlock).
+- Cards use `hover:border-accent/40` — accent border on hover instead of background tint, cleaner interaction signal.
+- `max-h-[50vh]` on the cards container prevents the dialog from growing too tall when many conflicts exist.
 
 ### AutoLockToast (inline)
 
@@ -348,3 +454,31 @@ Last updated: 2026-06-07
 - No interactive elements — auto-dismissed after 2s via `useEffect` in AppContent.
 - Shares the same visual styling as ClipboardToast (`bg-surface-overlay`, `border-border-subtle`, `rounded-lg`, `px-4 py-2.5`, `text-xs`).
 - No `transition-opacity` — appears/disappears instantly (matches the lock transition).
+
+---
+
+### SearchBar
+
+File: `src/components/SearchBar.tsx`
+Last updated: 2026-06-11
+
+| Property | Class |
+|---|---|
+| Wrapper padding | `px-3 pt-3 pb-2 shrink-0` |
+| Input background | `bg-surface` |
+| Input border (idle) | `border border-border-subtle` |
+| Input border (focus) | `focus:border-accent/50` |
+| Border radius | `rounded-md` |
+| Input padding | `pl-9 pr-8 py-2` |
+| Input text | `text-sm text-text-primary` |
+| Input placeholder | `placeholder-text-muted` |
+| Search icon | `text-text-muted` |
+| Clear button | `text-text-muted hover:text-text-secondary p-0.5 rounded hover:bg-surface-hover` |
+| Focus outline | `focus:outline-none` |
+
+**Pattern notes:**
+- Search icon is absolutely positioned left, pointer-events-none (decorative only).
+- Clear (×) button only renders when value is non-empty — no unused UI.
+- Clear button uses `p-0.5` (smaller than standard `p-2`) because the icon is size 14 and the hit target is already adequate inside the input.
+- Matches the standard input styling used in EntryForm and CreateVaultView (same bg-surface, border-border-subtle, rounded-md, py-2).
+- No form or submit — purely a controlled input with `onChange` handler.

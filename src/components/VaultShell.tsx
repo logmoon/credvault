@@ -1,10 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Plus, Settings as SettingsIcon, Lock, AlertTriangle } from 'lucide-react';
+import { ConflictDialog } from './ConflictDialog';
 import { open } from '@tauri-apps/plugin-shell';
 import { useVault } from '../context/VaultContext';
 import { useClipboard } from '../hooks/useClipboard';
 import { useAutoLock } from '../hooks/useAutoLock';
 import { isValidUrl } from '../lib/url';
+import { SearchBar } from './SearchBar';
 import { EntryList } from './EntryList';
 import { AddEntry } from './AddEntry';
 import { EntryDetail } from './EntryDetail';
@@ -13,15 +15,21 @@ import { ClipboardToast } from './ClipboardToast';
 
 type VaultShellProps = {
   hasConflict: boolean;
+  conflictPaths: string[];
   checkForConflicts: () => Promise<void>;
 };
 
-export function VaultShell({ hasConflict, checkForConflicts }: VaultShellProps) {
-  const { entries, config, lockVault } = useVault();
+export function VaultShell({ hasConflict: hasConflictFromSync, conflictPaths, checkForConflicts }: VaultShellProps) {
+  const { entries, config, lockVault, hasBlockingConflict, clearBlockingConflict } = useVault();
+
+  // Show banner if sync detects conflicts OR pre-save check blocked a save
+  const hasConflict = hasConflictFromSync || hasBlockingConflict;
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [rightPanel, setRightPanel] = useState<'add' | 'edit' | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
   const [panelKey, setPanelKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { showCopiedToast, showClearedToast, timeoutSecs, copyToClipboard } = useClipboard(
     config?.clipboardTimeoutMs ?? 30_000,
@@ -75,7 +83,24 @@ export function VaultShell({ hasConflict, checkForConflicts }: VaultShellProps) 
     setRightPanel(null);
   }, []);
 
+  const handleResolveResolved = useCallback(() => {
+    setResolveOpen(false);
+    clearBlockingConflict();
+    checkForConflicts();
+  }, [checkForConflicts, clearBlockingConflict]);
+
+  const handleResolveLockNeeded = useCallback(() => {
+    setResolveOpen(false);
+    lockVault();
+  }, [lockVault]);
+
   const entryList = entries ?? [];
+
+  const filteredEntries = useMemo(() => {
+    if (!searchQuery) return entryList;
+    const query = searchQuery.toLowerCase();
+    return entryList.filter(e => e.title.toLowerCase().includes(query));
+  }, [entryList, searchQuery]);
 
   return (
     <div className="min-h-screen bg-surface-window flex flex-col">
@@ -104,19 +129,30 @@ export function VaultShell({ hasConflict, checkForConflicts }: VaultShellProps) 
         </div>
       </header>
 
-      {/* Conflict banner — persistent until resolved */}
+      {/* Conflict banner — redesigned */}
       {hasConflict && (
-        <div className="flex items-center justify-between px-6 py-2 bg-surface-raised border-b border-border border-l-4 border-status-warning">
-          <div className="flex items-center gap-2 text-xs text-status-warning">
-            <AlertTriangle size={14} />
-            <span>Sync conflict detected — a conflicted copy of your vault exists</span>
+        <div className="bg-surface-raised border-b border-border">
+          <div className="flex items-center justify-between px-6 py-3">
+            <div className="flex items-center gap-3">
+              <div className="bg-status-warning/15 rounded-md p-1.5">
+                <AlertTriangle size={14} className="text-status-warning" />
+              </div>
+              <div>
+                <p className="text-sm text-text-primary font-medium">
+                  Sync conflict detected
+                </p>
+                <p className="text-xs text-text-muted mt-0.5">
+                  {conflictPaths.length} conflicting {conflictPaths.length === 1 ? 'copy' : 'copies'} found — choose which version to keep
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setResolveOpen(true)}
+              className="text-sm font-medium text-text-secondary border border-border rounded-md px-4 py-1.5 hover:bg-surface-hover hover:text-text-primary transition-colors"
+            >
+              Review
+            </button>
           </div>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="text-xs font-medium text-status-warning border border-status-warning/30 rounded-md px-3 py-1 hover:bg-status-warning/15 transition-colors"
-          >
-            Resolve
-          </button>
         </div>
       )}
 
@@ -126,14 +162,16 @@ export function VaultShell({ hasConflict, checkForConflicts }: VaultShellProps) 
           className="w-[280px] shrink-0 bg-surface border-r border-border-strong flex flex-col min-h-0"
           onClick={handleDeselect}
         >
+          <SearchBar value={searchQuery} onChange={setSearchQuery} />
           <EntryList
-            entries={entryList}
+            entries={filteredEntries}
             selectedId={selectedEntryId}
             onSelect={handleSelect}
             onCopyUsername={handleCopyUsername}
             onCopyPassword={handleCopyPassword}
             onOpenUrl={handleOpenUrl}
             isValidUrl={isValidUrl}
+            searchQuery={searchQuery}
           />
         </div>
 
@@ -163,7 +201,17 @@ export function VaultShell({ hasConflict, checkForConflicts }: VaultShellProps) 
       )}
 
       {settingsOpen && (
-        <Settings onClose={() => setSettingsOpen(false)} checkForConflicts={checkForConflicts} hasConflict={hasConflict} />
+        <Settings onClose={() => setSettingsOpen(false)} />
+      )}
+
+      {resolveOpen && config?.vaultPath && (
+        <ConflictDialog
+          vaultPath={config.vaultPath}
+          conflictPaths={conflictPaths}
+          onClose={() => setResolveOpen(false)}
+          onResolved={handleResolveResolved}
+          onLockNeeded={handleResolveLockNeeded}
+        />
       )}
     </div>
   );

@@ -11,22 +11,48 @@ pub enum ConfigError {
     Serialization(String),
 }
 
+/// A recently-opened vault entry in config.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RecentVault {
+    pub vault_id: String,
+    pub name: String,
+    pub path: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultConfig {
     pub vault_path: String,
+    #[serde(default)]
+    pub vault_name: String,
     pub lock_timeout_ms: u64,
     pub clipboard_timeout_ms: u64,
     pub clipboard_auto_clear: bool,
+    #[serde(default)]
+    pub recent_vaults: Vec<RecentVault>,
+}
+
+/// Derive a display name from a vault file path.
+/// E.g. "/Users/me/Dropbox/personal.cvault" -> "personal"
+#[allow(dead_code)]
+pub fn vault_name_from_path(path: &str) -> String {
+    std::path::Path::new(path)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("Vault")
+        .to_string()
 }
 
 impl Default for VaultConfig {
     fn default() -> Self {
         Self {
             vault_path: String::new(),
+            vault_name: String::from("Vault"),
             lock_timeout_ms: 300_000,
             clipboard_timeout_ms: 30_000,
             clipboard_auto_clear: true,
+            recent_vaults: Vec::new(),
         }
     }
 }

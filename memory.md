@@ -1,44 +1,34 @@
-# Memory — Phase 12: Conflict Banner, Border Token Fix, Review
+# Memory — Phase 14 Search
 
-Last updated: 2026-06-07
+Last updated: 2026-06-11
 
 ## What was built
 
-### Conflict Banner (VaultShell.tsx)
-- Persistent amber banner below the header when `hasConflict` is true: amber left border, `AlertTriangle` icon, "Sync conflict detected — a conflicted copy of your vault exists", "Resolve" button opens Settings.
-- Removed conflict icon from the top bar header — banner is more visible and matches the first-run warning pattern.
-- Fixed hardcoded inline `borderLeftColor: '#C4840A'` to Tailwind class `border-l-4 border-status-warning`.
-
-### Border token fix
-- Found and fixed the `border-subtle` naming issue: the Tailwind `border` color group conflicts with the `border` width utility class. All instances use `border-border-subtle`, `border-border`, `border-border-strong` pattern.
-- Confirmed by grepping compiled CSS.
-
-### Review
-- `/review` ran clean: 0 issues found. Banner follows design tokens, matches ui-rules.md patterns (first-run warning callout), no security boundary violations.
+- **`src/components/SearchBar.tsx`** — new component: text input with Search icon (left, decorative), clear X button (right, only when query non-empty). Props: `value`, `onChange`. Styled with standard input tokens (`bg-surface`, `border-border-subtle`, `rounded-md`, `text-sm`).
+- **`src/components/EntryList.tsx`** — added optional `searchQuery` prop. When entries are empty and `searchQuery` is set, shows "No entries match '[query]'" instead of the default "No entries yet" empty state.
+- **`src/components/VaultShell.tsx`** — added `searchQuery` state, `useMemo`-based `filteredEntries` computation (case-insensitive substring match on `entry.title`), wired SearchBar into the sidebar above EntryList.
 
 ## Decisions made
 
-- **Conflict banner matches first-run warning pattern**: Same amber left border, `bg-surface-raised`, `text-status-warning` — consistent with LockScreen's warning callout pattern.
-- **"Resolve" opens Settings** until Phase 13 builds the dedicated resolution dialog.
+- **Search state in VaultShell**: `useState` in the parent that owns both SearchBar and EntryList. Not a custom hook — single synchronous filter doesn't warrant the abstraction.
+- **Filtering via useMemo**: Synchronous, case-insensitive `.includes()` on `entry.title` only. No debounce — purely client-side, instant.
+- **No-results in EntryList**: EntryList receives `searchQuery` prop and chooses between "no entries" and "no results" empty states internally. Keeps empty-state logic co-located.
+- **SearchBar as separate file**: Consistent with the architecture's listed component structure, even though it's a small component.
 
 ## Problems solved
 
-- **`border-status-warning` confirmed working**: Tailwind generates it correctly from `status: { warning: '#C4840A' }` in the config. Using it for both the banner's left border and the Resolve button styling.
-- **Inline style → Tailwind class**: The banner's amber left border was initially hardcoded via `style={{ borderLeft: '4px solid', borderLeftColor: '#C4840A' }}`. Fixed to `border-l-4 border-status-warning` to obey the no-hardcoded-colors rule.
+- (none — straightforward feature, no blockers)
 
 ## Current state
 
-- **Phase 12 sync** (simplified, one-path model): Complete.
-- **Conflict banner**: Built, styled, wired. `npx tsc --noEmit`: 0 errors. `npx vite build`: clean. `cargo clippy -- -D warnings`: clean. `cargo test`: 28/28 pass.
-- **ui-registry.md**: Updated with Conflict Banner entry. All 12 components now documented.
+- `npx tsc --noEmit`: 0 errors
+- `npx vite build`: clean
+- Reviewed via `/review` — no issues found. User confirmed satisfied.
+- Imprinted to `context/ui-registry.md`.
 
 ## Next session starts with
 
-**Phase 13 — Conflict Resolution Dialog**: Build the dedicated resolution dialog. When user clicks "Resolve", instead of opening Settings, show a modal with:
-- "Two versions of your vault exist" message
-- Local timestamp vs sync (conflict) timestamp
-- "Keep this device's version" and "Keep cloud version" buttons
-- On choice: delete the other file, reload vault
+**Phase 15 — UI Polish Pass.** Audit every component against `ui-tokens.md` and `ui-rules.md`, fix any deviations. Add transitions (fade in/out on lock/unlock), hover states, disabled states, error toasts, ensure passwords are never visible unless revealed.
 
 ## Open questions
 

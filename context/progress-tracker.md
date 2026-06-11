@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** Phase 1 — Sync + Polish
-**Last completed:** 12 Sync (simplified — vault path = sync path)
-**Next:** 13 Conflict Resolution
+**Last completed:** 13 Conflict Resolution
+**Next:** 14 Search
 
 ---
 
@@ -25,9 +25,9 @@
 
 ### Phase 1 — Sync + Polish
 
-- [ ] 11 Settings Screen
-- [ ] 12 Sync — On-Open Pull and On-Save Push
-- [ ] 13 Conflict Resolution
+- [x] 11 Settings Screen
+- [x] 12 Sync — On-Open Pull and On-Save Push
+- [x] 13 Conflict Resolution
 - [ ] 14 Search
 - [ ] 15 UI Polish Pass
 

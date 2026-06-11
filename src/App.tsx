@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { VaultProvider, useVault } from './context/VaultContext';
 import { useSync } from './hooks/useSync';
 import { LockScreen } from './components/LockScreen';
@@ -14,7 +14,16 @@ function LoadingState({ message }: { message: string }) {
 
 function AppContent() {
   const { locked, config, lastLockReason, clearLockReason } = useVault();
-  const { hasConflict, checkForConflicts } = useSync();
+  const { conflictPaths, hasConflict, checkForConflicts } = useSync();
+
+  // Re-check conflicts when vault unlocks
+  const prevLockedRef = useRef(locked);
+  useEffect(() => {
+    if (prevLockedRef.current && !locked) {
+      checkForConflicts();
+    }
+    prevLockedRef.current = locked;
+  }, [locked, checkForConflicts]);
 
   useEffect(() => {
     if (lastLockReason === 'inactivity') {
@@ -29,7 +38,7 @@ function AppContent() {
 
   return (
     <>
-      {locked ? <LockScreen /> : <VaultShell hasConflict={hasConflict} checkForConflicts={checkForConflicts} />}
+      {locked ? <LockScreen /> : <VaultShell hasConflict={hasConflict} conflictPaths={conflictPaths} checkForConflicts={checkForConflicts} />}
 
       {lastLockReason === 'inactivity' && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-surface-overlay border border-border-subtle rounded-lg px-4 py-2.5 text-xs text-text-primary z-50 shadow-sm">

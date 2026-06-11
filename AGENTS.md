@@ -13,24 +13,39 @@ This file is read first by any AI coding agent. It defines the skills available 
 | `/remember restore` | Start of every session | Restore full context before continuing |
 | `/review` | After building any feature | Verify correctness, not just that it works |
 | `/recover` | When something breaks | Diagnose failure mode before attempting fixes |
-| `/imprint` | After building any UI component | Capture visual patterns to ui-registry.md |
+| `/imprint` | After the user confirms a UI feature is done | Capture visual patterns to ui-registry.md |
 
 ---
 
 ## Session Protocol
 
-Every session follows this order:
+Every session has two phases.
 
-1. Run `/remember restore` — load memory.md and all context files
+### Phase 1 — Planning
+
+1. Run `/remember restore` — reload memory.md and all context files before anything else
 2. Read `context/progress-tracker.md` — know exactly where things stand
-3. Run `/architect` before starting any new feature
-4. Build the feature
-5. Run `/review` after completing the feature
-6. Run `/imprint` after any UI component
-7. Update `context/progress-tracker.md`
-8. Run `/remember save` at end of session
+3. Run `/architect` — think through the feature before touching code. Present the plan and wait for explicit approval before proceeding
 
-Never skip steps 1 and 8. Context loss between sessions is the primary source of drift and bugs.
+Do not write any code until the user has explicitly approved the plan.
+
+### Phase 2 — Building
+
+1. Build the feature
+2. Run `/review` — report findings and stop. Do not proceed further
+3. Wait for the user to test and confirm. The user may request fixes — make them and re-run `/review` as needed. Repeat until the user explicitly says they are satisfied
+4. Only after the user explicitly confirms they are happy: run `/imprint` to capture UI patterns to ui-registry.md
+5. Update `context/progress-tracker.md`
+6. Run `/remember save`
+
+### Definition of Done
+
+A feature is only done when:
+- `/review` has run, all issues are resolved, and the **user has explicitly confirmed they are satisfied**
+- `context/progress-tracker.md` is updated
+- `/remember save` has run
+
+Do not run `/imprint` or `/remember save`, update the progress tracker, or consider a feature complete until the user says so. After `/review` passes, stop and wait — do not proceed autonomously.
 
 ---
 

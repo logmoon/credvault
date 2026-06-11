@@ -1,34 +1,64 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
 import { useVault } from '../context/VaultContext';
-import { getDefaultVaultPath, vaultExists, createVault, unlockVault } from '../lib/ipc';
+import { getDefaultVaultPath, vaultExists, createVault, unlockVault, switchVault, sanitizeVaultName, pickVaultPath } from '../lib/ipc';
+import { UnlockView } from './UnlockView';
+import { CreateVaultView } from './CreateVaultView';
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function vaultNameFromPath(path: string): string {
+  const parts = path.replace(/\\/g, '/').split('/');
+  const filename = parts[parts.length - 1] || '';
+  return filename.replace(/\.cvault$/i, '') || 'Vault';
+}
+
 export function LockScreen() {
-  const { unlockVault: setUnlocked, updateConfig } = useVault();
+  const { unlockVault: setUnlocked, config, updateConfig } = useVault();
 
   const [mode, setMode] = useState<'loading' | 'unlock' | 'create'>('loading');
   const [vaultPath, setVaultPath] = useState('');
+  const [vaultName, setVaultName] = useState('');
+  const [defaultFolder, setDefaultFolder] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!config) return;
     let cancelled = false;
     (async () => {
       try {
-        const path = await getDefaultVaultPath();
+        // Always fetch the app_data_dir path so the Create screen's "Save location"
+        // always defaults to AppData/Roaming/com.credvault.app, regardless of where
+        // any existing vault lives.
+        const appDefaultPath = await getDefaultVaultPath();
         if (cancelled) return;
+        setDefaultFolder(appDefaultPath.replace(/[^/\\]+\.cvault$/i, '').replace(/[\\/]$/, ''));
+
+        let path = config.vaultPath;
+        let name = config.vaultName;
+
+        if (!path) {
+          path = appDefaultPath;
+          name = vaultNameFromPath(path);
+        }
+
+        if (!name) {
+          name = vaultNameFromPath(path);
+        }
+
         setVaultPath(path);
+        setVaultName(name);
+
         const exists = await vaultExists(path);
         if (cancelled) return;
-        setMode(exists ? 'unlock' : 'create');
+        if (exists) {
+          setMode('unlock');
+        } else {
+          setMode('create');
+        }
       } catch {
         if (cancelled) return;
         setError('Failed to initialize vault path');
@@ -36,16 +66,17 @@ export function LockScreen() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [config]);
 
   const handleUnlock = useCallback(async () => {
-    if (!password || submitting) return;
+    if (!password || !vaultPath || submitting) return;
     setSubmitting(true);
     setError('');
     try {
-      // unlock_vault caches the derived key in Rust SessionState
-      const entries = await unlockVault(password, vaultPath);
-      updateConfig({ vaultPath });
+      const { entries, vaultId } = await unlockVault(password, vaultPath);
+      const recentVaults = (config?.recentVaults ?? []).filter(v => v.path !== vaultPath);
+      recentVaults.unshift({ vaultId, name: vaultName, path: vaultPath });
+      updateConfig({ vaultPath, vaultName, recentVaults });
       setUnlocked(entries);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -53,37 +84,59 @@ export function LockScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [password, vaultPath, submitting, setUnlocked]);
+  }, [password, vaultPath, vaultName, submitting, config?.recentVaults, setUnlocked, updateConfig]);
 
-  const handleCreate = useCallback(async () => {
-    if (!password || !confirmPassword || submitting) return;
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
+  const handleSwitchVault = useCallback(async (path: string) => {
+    try {
+      const result = await switchVault(path);
+      if (!result.exists) {
+        // Vault file is gone — prune it from recents and show a clear error
+        const pruned = (config?.recentVaults ?? []).filter(v => v.path !== path);
+        updateConfig({ recentVaults: pruned });
+        setError(`Vault file not found: ${path}`);
+        return;
+      }
+      setVaultPath(path);
+      setVaultName(result.vaultName);
+      setMode('unlock');
+      setPassword('');
+      setError('');
+      setSubmitting(false);
+    } catch {
+      setError('Failed to switch vault');
     }
+  }, [config?.recentVaults, updateConfig]);
+
+  const handleBrowseVault = useCallback(async () => {
+    try {
+      const path = await pickVaultPath();
+      if (!path) return;
+      await handleSwitchVault(path);
+    } catch {
+      setError('Failed to open file picker');
+    }
+  }, [handleSwitchVault]);
+
+  const handleCreate = useCallback(async (newVaultName: string, folderPath: string) => {
     setSubmitting(true);
     setError('');
     try {
-      await createVault(password, vaultPath);
-      const entries = await unlockVault(password, vaultPath);
-      updateConfig({ vaultPath });
+      const sanitized = await sanitizeVaultName(newVaultName);
+      const finalPath = `${folderPath.replace(/\\/g, '/')}/${sanitized}.cvault`;
+      await createVault(password, finalPath);
+      const { entries, vaultId } = await unlockVault(password, finalPath);
+      const recentVaults = (config?.recentVaults ?? []).filter(v => v.path !== finalPath);
+      recentVaults.unshift({ vaultId, name: newVaultName, path: finalPath });
+      updateConfig({ vaultPath: finalPath, vaultName: newVaultName, recentVaults });
+      setVaultPath(finalPath);
+      setVaultName(newVaultName);
       setUnlocked(entries);
     } catch {
       setError('Failed to create vault');
     } finally {
       setSubmitting(false);
     }
-  }, [password, confirmPassword, vaultPath, submitting, setUnlocked]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      if (mode === 'unlock') {
-        handleUnlock();
-      } else {
-        handleCreate();
-      }
-    }
-  }, [mode, handleUnlock, handleCreate]);
+  }, [password, submitting, config?.recentVaults, setUnlocked, updateConfig]);
 
   if (mode === 'loading') {
     return (
@@ -93,8 +146,6 @@ export function LockScreen() {
     );
   }
 
-  const passwordsMatch = password === confirmPassword;
-
   return (
     <div className="min-h-screen bg-surface-window flex flex-col items-center justify-center px-6"
       style={{ paddingTop: '5vh' }}
@@ -103,96 +154,50 @@ export function LockScreen() {
         <h1 className="text-sm text-text-secondary font-medium text-center mb-1">
           CredVault
         </h1>
-        <p className="text-xs text-text-muted text-center mb-8">
+        <p className="text-xs text-text-muted text-center mb-6">
           Zero-knowledge credential manager
         </p>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs text-text-secondary mb-1.5 font-mono">
-              Master password
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={e => { setPassword(e.target.value); setError(''); }}
-                onKeyDown={handleKeyDown}
-                className="w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
-                placeholder="Enter master password"
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(p => !p)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary"
-                tabIndex={-1}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+        {mode === 'unlock' ? (
+          <UnlockView
+            vaultPath={vaultPath}
+            vaultName={vaultName}
+            config={config}
+            password={password}
+            error={error}
+            submitting={submitting}
+            onPasswordChange={setPassword}
+            onUnlock={handleUnlock}
+            onSwitchVault={handleSwitchVault}
+            onBrowseVault={handleBrowseVault}
+            onSwitchToCreate={() => { setMode('create'); setPassword(''); setError(''); }}
+          />
+        ) : (
+          <>
+            <div className="w-full text-center text-sm text-text-muted mb-6">
+              Create new vault
             </div>
-          </div>
-
-          {mode === 'create' && (
-            <div>
-              <label className="block text-xs text-text-secondary mb-1.5 font-mono">
-                Confirm password
-              </label>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={e => { setConfirmPassword(e.target.value); setError(''); }}
-                  onKeyDown={handleKeyDown}
-                  className="w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
-                  placeholder="Re-enter master password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(p => !p)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary"
-                  tabIndex={-1}
-                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <p className="text-xs text-status-error">{error}</p>
-          )}
-
-          {mode === 'create' && (
-            <div className="bg-surface-raised border-l-4 border-status-warning rounded-r-md p-4">
-              <p className="text-xs leading-relaxed text-status-warning">
-                <strong>There is no password recovery.</strong><br />
-                Your master password is the only key to your vault.
-                If you forget it, your data cannot be recovered —
-                by anyone. Write it down somewhere safe.
-              </p>
-            </div>
-          )}
-
-          <div className="flex justify-end">
-            <button
-              onClick={mode === 'unlock' ? handleUnlock : handleCreate}
-              disabled={
-                submitting ||
-                !password ||
-                (mode === 'create' && (!confirmPassword || !passwordsMatch))
-              }
-              className="bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
-            >
-              {submitting
-                ? (mode === 'unlock' ? 'Unlocking…' : 'Creating…')
-                : (mode === 'unlock' ? 'Unlock' : 'Create Vault')
-              }
-            </button>
-          </div>
-        </div>
+            <CreateVaultView
+              password={password}
+              error={error}
+              submitting={submitting}
+              defaultFolder={defaultFolder}
+              onPasswordChange={setPassword}
+              onCreate={handleCreate}
+              onSwitchToUnlock={() => {
+                // Restore the last known vault from config so the unlock screen
+                // isn't blank when the user clicks "Already have a vault? Unlock existing".
+                const restoredPath = config?.vaultPath || '';
+                const restoredName = config?.vaultName || (restoredPath ? vaultNameFromPath(restoredPath) : '');
+                setVaultPath(restoredPath);
+                setVaultName(restoredName);
+                setMode('unlock');
+                setPassword('');
+                setError('');
+              }}
+            />
+          </>
+        )}
       </div>
     </div>
   );

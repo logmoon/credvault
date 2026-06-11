@@ -1,12 +1,13 @@
 import { createContext, useContext, useState, useCallback, useRef, useMemo, useEffect, type ReactNode } from 'react';
 import { type Entry, type VaultConfig } from '../lib/types';
-import { saveVault, lockVault as lockVaultIpc, loadConfig, saveConfig } from '../lib/ipc';
+import { saveVault, lockVault as lockVaultIpc, loadConfig, saveConfig, checkConflicts } from '../lib/ipc';
 
 type VaultState = {
   locked: boolean;
   entries: Entry[] | null;
   config: VaultConfig | null;
   lastLockReason: 'inactivity' | null;
+  hasBlockingConflict: boolean;
   lockVault: (reason?: 'inactivity') => void;
   unlockVault: (entries: Entry[]) => void;
   addEntry: (entry: Entry) => void;
@@ -14,6 +15,7 @@ type VaultState = {
   deleteEntry: (id: string) => void;
   updateConfig: (fields: Partial<VaultConfig>) => void;
   clearLockReason: () => void;
+  clearBlockingConflict: () => void;
 };
 
 const VaultContext = createContext<VaultState | null>(null);
@@ -23,21 +25,30 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<Entry[] | null>(null);
   const [config, setConfig] = useState<VaultConfig | null>(null);
   const [lastLockReason, setLastLockReason] = useState<'inactivity' | null>(null);
+  const [hasBlockingConflict, setHasBlockingConflict] = useState(false);
   const entriesRef = useRef<Entry[] | null>(null);
+  const configRef = useRef<VaultConfig | null>(null);
   const savePromiseRef = useRef<Promise<void> | null>(null);
   const pendingSaveRef = useRef(false);
 
   useEffect(() => {
     loadConfig()
-      .then(setConfig)
+      .then((cfg) => {
+        setConfig(cfg);
+        configRef.current = cfg;
+      })
       .catch(() => {
         // First run — no config file yet; use defaults
-        setConfig({
+        const defaults = {
           vaultPath: '',
+          vaultName: 'Vault',
           lockTimeoutMs: 300_000,
           clipboardTimeoutMs: 30_000,
           clipboardAutoClear: true,
-        });
+          recentVaults: [],
+        };
+        setConfig(defaults);
+        configRef.current = defaults;
       });
   }, []);
 
@@ -62,6 +73,20 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // Check for conflicts before saving — prevents overwriting a conflicted copy
+    const cfg = configRef.current;
+    if (cfg?.vaultPath) {
+      try {
+        const conflicts = await checkConflicts(cfg.vaultPath);
+        if (conflicts.length > 0) {
+          setHasBlockingConflict(true);
+          return;
+        }
+      } catch {
+        // Silently proceed with save if the check fails
+      }
+    }
+
     if (savePromiseRef.current) {
       pendingSaveRef.current = true;
     } else {
@@ -76,6 +101,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     setLocked(true);
     setLastLockReason(reason ?? null);
     entriesRef.current = null;
+    setHasBlockingConflict(false);
     lockVaultIpc();
   }, []);
 
@@ -108,10 +134,17 @@ export function VaultProvider({ children }: { children: ReactNode }) {
 
   const clearLockReason = useCallback(() => setLastLockReason(null), []);
 
+  const clearBlockingConflict = useCallback(() => {
+    setHasBlockingConflict(false);
+    // Retry the pending save now that conflict is resolved
+    triggerSave();
+  }, [triggerSave]);
+
   const updateConfig = useCallback((fields: Partial<VaultConfig>) => {
     setConfig(prev => {
       if (!prev) return prev;
       const next = { ...prev, ...fields };
+      configRef.current = next;
       saveConfig(next).catch(() => {
         console.error('Failed to save config');
       });
@@ -134,6 +167,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     entries,
     config,
     lastLockReason,
+    hasBlockingConflict,
     lockVault,
     unlockVault,
     addEntry,
@@ -141,7 +175,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     deleteEntry,
     updateConfig,
     clearLockReason,
-  }), [locked, entries, config, lastLockReason, lockVault, unlockVault, addEntry, updateEntry, deleteEntry, updateConfig, clearLockReason]);
+    clearBlockingConflict,
+  }), [locked, entries, config, lastLockReason, hasBlockingConflict, lockVault, unlockVault, addEntry, updateEntry, deleteEntry, updateConfig, clearLockReason, clearBlockingConflict]);
 
   return (
     <VaultContext.Provider value={value}>
