@@ -3,8 +3,8 @@
 ## Current Status
 
 **Phase:** Phase 1 — Sync + Polish
-**Last completed:** 13 Conflict Resolution
-**Next:** 14 Search
+**Last completed:** 15 UI Polish Pass
+**Next:** 16 Mobile Tauri Targets
 
 ---
 
@@ -28,8 +28,8 @@
 - [x] 11 Settings Screen
 - [x] 12 Sync — On-Open Pull and On-Save Push
 - [x] 13 Conflict Resolution
-- [ ] 14 Search
-- [ ] 15 UI Polish Pass
+- [x] 14 Search
+- [x] 15 UI Polish Pass
 
 ### Phase 2 — Mobile
 

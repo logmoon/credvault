@@ -39,7 +39,7 @@ Unlock form with vault picker. Used when a vault exists at the configured path.
 |---|---|
 | Vault picker button | `w-full flex items-center justify-center gap-1.5 text-sm text-text-primary font-medium hover:text-accent transition-colors` |
 | Vault name text | `truncate` |
-| Picker dropdown | `absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[320px] bg-surface-overlay border border-border-subtle rounded-lg shadow-sm z-50 p-3` |
+| Picker dropdown | `absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[320px] bg-surface-overlay border border-border-subtle rounded-lg z-50 p-3` |
 | Picker heading | `text-xs text-text-muted mb-2` |
 | Picker recent vault item | `w-full text-left px-3 py-2 rounded-md text-xs text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors` |
 | Picker recent vault name | `text-xs font-medium` |
@@ -56,7 +56,7 @@ Unlock form with vault picker. Used when a vault exists at the configured path.
 | Input appearance | `appearance-none` |
 | Label text | `text-xs text-text-secondary mb-1.5 font-mono` |
 | Error text | `text-xs text-status-error` |
-| Button — primary | `bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
+| Button — primary | `bg-accent hover:bg-accent-dark disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
 
 **Pattern notes:**
 - Password input disabled when `vaultPath` is empty — forces user to select a vault first.
@@ -90,9 +90,9 @@ Create vault form. Used when no vault exists at the configured path.
 | Reveal toggle | `absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` with `tabIndex={-1}` |
 | Error text | `text-xs text-status-error` |
 | Warning callout | `bg-surface-raised border-l-4 border-status-warning rounded-r-md p-4` with `text-xs leading-relaxed text-status-warning` |
-| Save location display | `flex-1 bg-surface border border-border-subtle rounded-md px-3 py-2 text-xs text-text-muted truncate` |
-| Save location button | `flex items-center gap-1.5 text-xs text-text-secondary border border-border rounded-md px-3 py-2 hover:bg-surface-hover transition-colors shrink-0` |
-| Button — primary | `bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
+| Save location path | `text-xs text-text-muted truncate` |
+| Save location change | `text-xs text-text-muted hover:text-accent transition-colors` |
+| Button — primary | `bg-accent hover:bg-accent-dark disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
 | Switch link | `w-full text-center text-xs text-text-muted hover:text-text-secondary transition-colors mt-3` |
 
 **Pattern notes:**
@@ -100,9 +100,9 @@ Create vault form. Used when no vault exists at the configured path.
 - Validates form fields locally before calling `onCreate(vaultName)`.
 - `displayError = localError || error` — local form validation takes precedence over submission errors.
 - All validation (name required, password required, password match) happens in component — LockScreen receives only the validated vault name.
-- Password defaults to visible (`showPassword` starts `false` — hidden by default).
+- Password defaults to hidden (`showPassword` starts `false`).
 - Auto-focuses on vault name input.
-- Save location section: folder path display + "Change" button opens native folder picker via `pickFolder()`. `useEffect` syncs `saveFolder` when `defaultFolder` prop arrives async.
+- Save location shown inline below vault name input as compact one-liner: path on the left, "Change" link on the right. `useEffect` syncs `saveFolder` when `defaultFolder` prop arrives async.
 
 ### EntryRow
 
@@ -182,7 +182,7 @@ Last updated: 2026-06-07
 | Slider | `w-full accent-accent` |
 | Checkbox | `accent-accent` |
 | Checkbox label | `text-xs text-text-secondary` |
-| Generate button | `w-full text-xs text-text-secondary border border-border-subtle rounded-md px-3 py-1.5 hover:bg-surface-hover transition-colors disabled:opacity-40` |
+| Generate button | `w-full text-xs text-text-secondary border border-border-subtle rounded-md px-3 py-1.5 hover:bg-surface-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed` |
 | Icon size | `size={14}` (lucide-react) |
 
 **Pattern notes:**
@@ -208,7 +208,7 @@ Last updated: 2026-06-07
 | Input — error state | `border-status-error/60` |
 | Input — password | same as text but with `font-mono` and `pr-10` for icon inset |
 | Error text | `text-xs text-status-error mt-1` |
-| Button — primary (Save) | `bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
+| Button — primary (Save) | `bg-accent hover:bg-accent-dark disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
 | Footer separator | `border-t border-border shrink-0` |
 | Footer layout | `flex items-center justify-end px-6 py-4` |
 | Icon size | `size={16}` (lucide-react) |
@@ -217,7 +217,7 @@ Last updated: 2026-06-07
 **Pattern notes:**
 - Form uses `absolute inset-0 flex flex-col` — inner scroll area (`flex-1 overflow-y-auto min-h-0 p-6`) plus fixed footer (`shrink-0`).
 - Title is the only required field — validation error shown inline below the input.
-- Password field defaults to visible (`showPassword: true`) in AddEntry context.
+- Password field defaults to hidden (`initialPasswordVisible={false}`) in AddEntry context.
 - Escape closes the form. Enter submits if title is non-empty.
 - No Cancel button — only Save in the footer. Close via Escape or the X button.
 
@@ -262,7 +262,7 @@ Last updated: 2026-06-07
 | Footer separator | `border-t border-border shrink-0` |
 | Footer layout | `flex items-center justify-between px-6 py-4` |
 | Button — destructive (Delete) | `flex items-center gap-1.5 text-sm text-status-error border border-status-error/30 rounded-md px-3 py-2 hover:bg-status-error/15 transition-colors` with `Trash2 size={14}` |
-| Button — primary (Save) | `bg-accent hover:bg-accent-dark disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
+| Button — primary (Save) | `bg-accent hover:bg-accent-dark disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
 
 **Pattern notes:**
 - Accepts `entryId` prop and looks up entry from `useVault().entries` — does not receive entry data as prop
@@ -281,7 +281,7 @@ Last updated: 2026-06-07
 | Property | Class |
 |---|---|
 | Overlay | `fixed inset-0 bg-black/60 flex items-center justify-center z-50` |
-| Dialog background | `bg-surface-window` |
+| Dialog background | `bg-surface-overlay` |
 | Dialog border | `border border-border-subtle` |
 | Dialog radius | `rounded-xl` |
 | Dialog padding | `p-6` |
@@ -290,16 +290,15 @@ Last updated: 2026-06-07
 | Message text | `text-sm text-text-secondary mb-6` |
 | Button layout | `flex items-center justify-end gap-2` |
 | Button — Cancel | `text-sm text-text-secondary border border-border-subtle rounded-md px-4 py-2 hover:bg-surface-hover transition-colors` |
-| Button — destructive confirm | `text-sm font-medium text-status-error border border-status-error/30 hover:bg-status-error/15 rounded-md px-4 py-2 transition-colors disabled:opacity-40` |
-| Button — normal confirm | `bg-accent hover:bg-accent-dark text-white text-sm font-medium rounded-md px-4 py-2 transition-colors disabled:opacity-40` |
+| Button — destructive confirm | `text-sm font-medium text-status-error border border-status-error/30 hover:bg-status-error/15 rounded-md px-4 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed` |
+| Button — normal confirm | `bg-accent hover:bg-accent-dark text-white text-sm font-medium rounded-md px-4 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed` |
 | Loading label | `'Deleting…'` (suffix appended to confirmLabel when loading) |
 
 **Pattern notes:**
 - Overlay click dismisses (`onClick={onCancel}`); dialog `e.stopPropagation()` prevents overlay dismissal from inside the dialog
 - Escape key dismisses via global `keydown` listener (registered in `useEffect`)
 - `destructive` prop switches confirm button between accent and error styling
-- `loading` prop adds `disabled:opacity-40` and changes confirm label to `'Deleting…'`
-- **Deviation from ui-tokens**: Dialog uses `bg-surface-window` but design tokens specify `surface.overlay` (`#2E2E2E`) for modals. Consider updating to `bg-surface-overlay`.
+- `loading` prop adds `disabled:opacity-40 disabled:cursor-not-allowed` and changes confirm label to `'Deleting…'`
 
 ### ClipboardToast
 
@@ -314,8 +313,7 @@ Last updated: 2026-06-07
 | Border radius | `rounded-lg` |
 | Padding | `px-4 py-2.5` |
 | Text | `text-xs text-text-primary whitespace-nowrap` |
-| Shadow | `shadow-sm` |
-| Transition | `transition-opacity` |
+| Shadow | none |
 **Pattern notes:**
 - Two variants: `copied` shows "Copied — clears in {n}s" (with seconds), `cleared` shows "Clipboard cleared" (no seconds).
 - Positioned absolutely inside the right panel (`relative` container on `<main>`) — not `fixed` relative to window.
@@ -330,7 +328,7 @@ Last updated: 2026-06-07
 | Property | Class |
 |---|---|
 | Overlay | `fixed inset-0 bg-black/60 flex items-center justify-center z-50` |
-| Dialog background | `bg-surface-window` |
+| Dialog background | `bg-surface-overlay` |
 | Dialog border | `border border-border` |
 | Dialog radius | `rounded-xl` |
 | Dialog size | `w-[600px] max-w-[90vw] max-h-[80vh]` |
@@ -393,6 +391,30 @@ Last updated: 2026-06-11
 - "Review" button matches secondary/ghost button pattern (`border border-border`, `hover:bg-surface-hover`).
 - Replaced the previous `border-l-4 border-status-warning` heavy left-border approach with a cleaner inline icon box. The warning color is now used as a background tint rather than a border accent.
 
+### ErrorToast
+
+File: `src/components/ErrorToast.tsx`
+Last updated: 2026-06-11
+
+| Property | Class |
+|---|---|
+| Container | `fixed bottom-6 left-1/2 -translate-x-1/2 z-50` |
+| Background | `bg-status-error/15` |
+| Border | `border border-status-error/30` |
+| Border radius | `rounded-lg` |
+| Padding | `px-4 py-2.5` |
+| Text | `text-xs text-status-error` |
+| Shadow | none |
+
+**Pattern notes:**
+- Auto-dismisses after 4 seconds via `useEffect` timeout.
+- Renders nothing when `message` is null — parent controls visibility by passing message or null.
+- Uses `fixed` (not `absolute`) positioning — visible above both LockScreen and VaultShell.
+- Error color is used as a background tint (`/15`) and border (`/30`), not as a solid background — matches the conflict banner pattern.
+- No interactive elements — purely informational, auto-dismissed.
+
+---
+
 ### ConflictDialog
 
 File: `src/components/ConflictDialog.tsx`
@@ -401,7 +423,7 @@ Last updated: 2026-06-11
 | Property | Class |
 |---|---|
 | Overlay | `fixed inset-0 bg-black/60 flex items-center justify-center z-50` |
-| Dialog background | `bg-surface-window` |
+| Dialog background | `bg-surface-overlay` |
 | Dialog border | `border border-border-subtle` |
 | Dialog radius | `rounded-xl` |
 | Dialog width | `max-w-[460px]` |
@@ -445,7 +467,7 @@ Last updated: 2026-06-07
 | Border radius | `rounded-lg` |
 | Padding | `px-4 py-2.5` |
 | Text | `text-xs text-text-primary` |
-| Shadow | `shadow-sm` |
+| Shadow | none |
 
 **Pattern notes:**
 - Rendered inline in AppContent, not as a separate component — lives above the locked/unlocked branch so it persists across transitions.

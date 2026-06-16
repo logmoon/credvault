@@ -70,10 +70,10 @@ export const EntryForm = memo(function EntryForm({
         <label className="block text-xs text-text-secondary mb-1.5 font-mono">Password</label>
         <div className="relative">
           <input
-            type={showPassword ? 'text' : 'password'}
+            type="text"
             value={values.password}
             onChange={handleChange('password')}
-            className="w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
+            className={`w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none ${!showPassword ? '[-webkit-text-security:disc]' : ''}`}
             placeholder="Generated or typed password"
           />
           <button

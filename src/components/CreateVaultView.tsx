@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff, FolderOpen } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { pickFolder } from '../lib/ipc';
 
 type CreateVaultViewProps = {
@@ -85,23 +85,14 @@ export function CreateVaultView({
           placeholder="e.g. Personal, Work"
           autoFocus
         />
-      </div>
-
-      <div>
-        <label className="block text-xs text-text-secondary mb-1.5">
-          Save location
-        </label>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 bg-surface border border-border-subtle rounded-md px-3 py-2 text-xs text-text-muted truncate">
-            {saveFolder}
-          </div>
+        <div className="flex items-center justify-between mt-1.5">
+          <span className="text-xs text-text-muted truncate min-w-0 mr-2">{saveFolder}</span>
           <button
             type="button"
             onClick={handlePickFolder}
-            className="flex items-center gap-1.5 text-xs text-text-secondary border border-border rounded-md px-3 py-2 hover:bg-surface-hover transition-colors shrink-0"
+            className="text-xs text-text-muted hover:text-accent transition-colors shrink-0"
           >
-            <FolderOpen size={14} />
-            <span>Change</span>
+            Change
           </button>
         </div>
       </div>
@@ -112,11 +103,11 @@ export function CreateVaultView({
         </label>
         <div className="relative">
           <input
-            type={showPassword ? 'text' : 'password'}
+            type="text"
             value={password}
             onChange={e => { onPasswordChange(e.target.value); setLocalError(''); }}
             onKeyDown={handleKeyDown}
-            className="w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
+            className={`w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none ${!showPassword ? '[-webkit-text-security:disc]' : ''}`}
             placeholder="Enter master password"
           />
           <button
@@ -137,11 +128,11 @@ export function CreateVaultView({
         </label>
         <div className="relative">
           <input
-            type={showConfirmPassword ? 'text' : 'password'}
+            type="text"
             value={confirmPassword}
             onChange={e => { setConfirmPassword(e.target.value); setLocalError(''); }}
             onKeyDown={handleKeyDown}
-            className="w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
+            className={`w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none ${!showConfirmPassword ? '[-webkit-text-security:disc]' : ''}`}
             placeholder="Re-enter master password"
           />
           <button

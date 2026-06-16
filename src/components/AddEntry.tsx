@@ -87,6 +87,7 @@ export function AddEntry({ onClose }: AddEntryProps) {
           onChange={handleChange}
           errors={errors}
           onPasswordGenerated={handlePasswordGenerated}
+          initialPasswordVisible={false}
         />
       </div>
 
