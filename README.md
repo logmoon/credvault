@@ -24,6 +24,16 @@ Installers are attached to each [GitHub Release](https://github.com/logmoon/cred
 - **Linux**: `.deb` (Debian/Ubuntu) and `.AppImage`
 - **Windows**: `.msi` and NSIS `.exe` installer
 
+### Arch Linux
+
+```bash
+git clone https://github.com/logmoon/credvault.git
+cd credvault
+makepkg -si
+```
+
+Installs `credvault-bin` with a launcher entry and `/usr/bin/credvault`. While the repository is private, download the AppImage from the release page and place it next to the PKGBUILD before running `makepkg -si`.
+
 ## Build from Source
 
 ### Prerequisites

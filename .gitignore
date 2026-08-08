@@ -25,3 +25,9 @@ Thumbs.db
 
 # Temp files
 *.tmp
+
+# Arch packaging
+*.AppImage
+*.pkg.tar.zst
+src/
+pkg/
