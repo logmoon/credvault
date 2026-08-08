@@ -9,7 +9,7 @@ _Written by `/imprint` after building any UI component. Read this before buildin
 ### LockScreen
 
 File: `src/components/LockScreen.tsx`
-Last updated: 2026-06-09
+Last updated: 2026-06-16
 
 Orchestrator that determines which view to render. Does not own form UI — delegates to `UnlockView` or `CreateVaultView`.
 
@@ -22,8 +22,9 @@ Orchestrator that determines which view to render. Does not own form UI — dele
 
 **Pattern notes:**
 - Lock screen content area is constrained to `w-[360px]` max, centered with slight upward offset (`paddingTop: 5vh`).
-- On mount, loads config, resolves vault path, checks `vaultExists`. Sets mode to `'unlock'` or `'create'`.
-- Owns shared state: `vaultPath`, `vaultName`, `password`, `error`, `submitting`.
+- On mount, loads config, resolves vault path, checks `vaultExists`. Tracks `vaultFileExists` state separately from mode.
+- When vault is configured but file is missing: mode stays `'unlock'` with `vaultFileExists=false` (disabled state with warning). Only first-run with no configured path falls through to `'create'`.
+- Owns shared state: `vaultPath`, `vaultName`, `vaultFileExists`, `password`, `error`, `submitting`.
 - Passes setters down as props to sub-views.
 
 ---
@@ -31,7 +32,7 @@ Orchestrator that determines which view to render. Does not own form UI — dele
 ### UnlockView
 
 File: `src/components/UnlockView.tsx`
-Last updated: 2026-06-09
+Last updated: 2026-06-16
 
 Unlock form with vault picker. Used when a vault exists at the configured path.
 
@@ -39,6 +40,9 @@ Unlock form with vault picker. Used when a vault exists at the configured path.
 |---|---|
 | Vault picker button | `w-full flex items-center justify-center gap-1.5 text-sm text-text-primary font-medium hover:text-accent transition-colors` |
 | Vault name text | `truncate` |
+| Vault icon (normal) | `Lock size={14} text-text-muted` |
+| Vault icon (missing) | `AlertTriangle size={14} text-status-warning` |
+| Missing file text | `text-xs text-status-warning text-center mt-1` |
 | Picker dropdown | `absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[320px] bg-surface-overlay border border-border-subtle rounded-lg z-50 p-3` |
 | Picker heading | `text-xs text-text-muted mb-2` |
 | Picker recent vault item | `w-full text-left px-3 py-2 rounded-md text-xs text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors` |
@@ -54,13 +58,15 @@ Unlock form with vault picker. Used when a vault exists at the configured path.
 | Input focus | `focus:outline-none focus:border-accent/50` |
 | Input disabled | `disabled:opacity-40 disabled:cursor-not-allowed` |
 | Input appearance | `appearance-none` |
+| Input security | `[-webkit-text-security:disc]` (conditional, when password should be hidden) |
 | Label text | `text-xs text-text-secondary mb-1.5 font-mono` |
 | Error text | `text-xs text-status-error` |
 | Button — primary | `bg-accent hover:bg-accent-dark disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-md transition-colors` |
 
 **Pattern notes:**
-- Password input disabled when `vaultPath` is empty — forces user to select a vault first.
-- Placeholder changes based on vaultPath: `'Select a vault first'` vs `'Enter master password'`.
+- Password input disabled when `vaultPath` is empty OR `vaultFileMissing` is true.
+- Placeholder changes based on state: `'Select a vault first'` vs `'Enter master password'` vs `'Vault file not found — browse for vault'`.
+- Password input uses `type="text"` with `[-webkit-text-security:disc]` CSS class instead of `type="password"` — avoids browser font-metric divergence between input types on Linux WebKit.
 - Picker click-outside uses `mousedown` event with `pickerRef` and `buttonRef` exclusion.
 - Recent vaults limited to `slice(0, 3)` with `max-h-[200px] overflow-y-auto`.
 - `autoFocus` only when vaultPath is set (`autoFocus={!!vaultPath}`).
@@ -70,7 +76,7 @@ Unlock form with vault picker. Used when a vault exists at the configured path.
 ### CreateVaultView
 
 File: `src/components/CreateVaultView.tsx`
-Last updated: 2026-06-09
+Last updated: 2026-06-16
 
 Create vault form. Used when no vault exists at the configured path.
 
@@ -85,6 +91,7 @@ Create vault form. Used when no vault exists at the configured path.
 | Input placeholder | `placeholder-text-muted` |
 | Input focus | `focus:outline-none focus:border-accent/50` |
 | Input appearance | `appearance-none` |
+| Input security | `[-webkit-text-security:disc]` (conditional, when password should be hidden) |
 | Label text | `text-xs text-text-secondary mb-1.5` |
 | Label — password | `font-mono` (adds mono font for password labels) |
 | Reveal toggle | `absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` with `tabIndex={-1}` |
@@ -101,6 +108,7 @@ Create vault form. Used when no vault exists at the configured path.
 - `displayError = localError || error` — local form validation takes precedence over submission errors.
 - All validation (name required, password required, password match) happens in component — LockScreen receives only the validated vault name.
 - Password defaults to hidden (`showPassword` starts `false`).
+- Password input uses `type="text"` with `[-webkit-text-security:disc]` instead of `type="password"` — avoids Linux WebKit font-metric divergence.
 - Auto-focuses on vault name input.
 - Save location shown inline below vault name input as compact one-liner: path on the left, "Change" link on the right. `useEffect` syncs `saveFolder` when `defaultFolder` prop arrives async.
 
@@ -224,7 +232,7 @@ Last updated: 2026-06-07
 ### EntryForm
 
 File: `src/components/EntryForm.tsx`
-Last updated: 2026-06-07
+Last updated: 2026-06-16
 
 | Property | Class |
 |---|---|
@@ -234,6 +242,7 @@ Last updated: 2026-06-07
 | Input — text | `w-full bg-surface border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none` |
 | Input — error state | `border-status-error/60` |
 | Input — password | same as text but with `font-mono` and `pr-10` for icon inset |
+| Input — security | `[-webkit-text-security:disc]` (conditional, when password should be hidden) |
 | Reveal toggle | `absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` with `tabIndex={-1}` |
 | Inline icon button | same as reveal toggle pattern (used for URL ExternalLink) |
 | Error text | `text-xs text-status-error mt-1` |
@@ -244,6 +253,7 @@ Last updated: 2026-06-07
 **Pattern notes:**
 - Wrapped in `React.memo` — prevents re-render when parent re-renders but form props haven't changed
 - Password input always has `font-mono`, URL input does not
+- Password input uses `type="text"` with conditional `[-webkit-text-security:disc]` instead of `type="password"` — avoids Linux WebKit font-metric divergence
 - `onChange` handler generates a curried function per field via `useCallback` — stable reference as long as `onChange` prop is stable
 - `initialPasswordVisible` prop controls password visibility default (`true` for AddEntry, `false` for EntryDetail)
 - URL ExternalLink button uses same absolute positioning as password reveal toggle — both inside a `relative` wrapper with `pr-10` on the input

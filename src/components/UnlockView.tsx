@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Eye, EyeOff, Lock, ChevronDown, FolderOpen, Plus } from 'lucide-react';
+import { Eye, EyeOff, Lock, AlertTriangle, ChevronDown, FolderOpen, Plus } from 'lucide-react';
 import { type RecentVault, type VaultConfig } from '../lib/types';
 
 type UnlockViewProps = {
   vaultPath: string;
   vaultName: string;
+  vaultFileExists: boolean | null;
   config: VaultConfig | null;
   password: string;
   error: string;
@@ -19,6 +20,7 @@ type UnlockViewProps = {
 export function UnlockView({
   vaultPath,
   vaultName,
+  vaultFileExists,
   config,
   password,
   error,
@@ -48,6 +50,8 @@ export function UnlockView({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [pickerOpen]);
 
+  const vaultFileMissing = !!vaultPath && vaultFileExists === false;
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') onUnlock();
   };
@@ -62,10 +66,17 @@ export function UnlockView({
           onClick={() => setPickerOpen(p => !p)}
           className="w-full flex items-center justify-center gap-1.5 text-sm text-text-primary font-medium hover:text-accent transition-colors"
         >
-          <Lock size={14} className="text-text-muted shrink-0" />
+          {vaultFileMissing ? (
+            <AlertTriangle size={14} className="text-status-warning shrink-0" />
+          ) : (
+            <Lock size={14} className="text-text-muted shrink-0" />
+          )}
           <span className="truncate">{vaultName || 'Select a vault'}</span>
           <ChevronDown size={14} className={`transition-transform shrink-0 ${pickerOpen ? 'rotate-180' : ''}`} />
         </button>
+        {vaultFileMissing && (
+          <p className="text-xs text-status-warning text-center mt-1">File not found</p>
+        )}
 
         {pickerOpen && (
           <div
@@ -124,9 +135,15 @@ export function UnlockView({
               value={password}
               onChange={e => onPasswordChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={!vaultPath}
+              disabled={!vaultPath || vaultFileMissing}
               className={`w-full font-mono bg-surface border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none disabled:opacity-40 disabled:cursor-not-allowed ${!showPassword ? '[-webkit-text-security:disc]' : ''}`}
-              placeholder={vaultPath ? 'Enter master password' : 'Select a vault first'}
+              placeholder={
+                vaultFileMissing
+                  ? 'Vault file not found — browse for vault'
+                  : vaultPath
+                    ? 'Enter master password'
+                    : 'Select a vault first'
+              }
               autoFocus={!!vaultPath}
             />
             <button
@@ -148,7 +165,7 @@ export function UnlockView({
         <div className="flex justify-end">
           <button
             onClick={onUnlock}
-            disabled={submitting || !vaultPath || !password}
+            disabled={submitting || !vaultPath || vaultFileMissing || !password}
             className="bg-accent hover:bg-accent-dark disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
           >
             {submitting ? 'Unlocking…' : 'Unlock'}

@@ -1,42 +1,48 @@
-# Memory — Phase 15 UI Polish Pass
+# Memory — Ship Desktop + Support Model (Planning)
 
-Last updated: 2026-06-11
+Last updated: 2026-06-21
 
 ## What was built
 
-- **`src/components/ErrorToast.tsx`** — new component: fixed bottom-center toast, red-tinted (`bg-status-error/15` + `border-status-error/30`), auto-dismisses after 4s. Wired into VaultContext save-failure path — replaces silent `console.error` with user-facing error.
-- **VaultContext.tsx** — added `error`/`addError`/`clearError` state. `addError` called in the save failure catch block. Error cleared on vault lock.
-- **App.tsx** — added `FadeIn` wrapper component (`transition-opacity duration-150` via rAF pattern). LockScreen and VaultShell each fade in on mount. ErrorToast rendered below the locked/unlocked branch.
-- **All primary/confirm buttons** — added `disabled:cursor-not-allowed` across UnlockView, CreateVaultView, AddEntry, EntryDetail, ConfirmDialog, PasswordGenerator.
-- **Dialog backgrounds fixed** — ConfirmDialog, ConflictDialog, Settings all changed from `bg-surface-window` to `bg-surface-overlay`.
-- **Shadows removed** — `shadow-sm` dropped from ClipboardToast, auto-lock toast, and vault picker dropdown.
-- **Orphan `transition-opacity` removed** from ClipboardToast (no effect — always mounted/unmounted).
-- **CreateVaultView save location collapsed** — path now shown as compact one-liner below the vault name input (`text-xs text-text-muted` + "Change" link with `hover:text-accent`). Removed separate section with folder icon button and border — saves ~50px.
-- **AddEntry password hidden by default** — added `initialPasswordVisible={false}` to EntryForm. Matches ui-rules: passwords always hidden by default everywhere.
+Nothing new this session — planning only. Phase 15 (UI Polish Pass) was the last code change (committed `602dc84`). All 15 features of the desktop vault are complete and functional.
 
 ## Decisions made
 
-- **Error state in VaultContext, not standalone**: The error string lives in VaultContext (single source of truth for app state), ErrorToast is a pure presentation component in App.tsx. This avoids a separate notification system.
-- **FadeIn uses rAF pattern**: `requestAnimationFrame` inside `useEffect` ensures the `opacity-0` class is applied first before transitioning to `opacity-100` — reliable CSS transition trigger.
-- **Error toast no interactive elements**: Unlike ClipboardToast, the error toast has no "Clear now" or "×" button — purely informational, auto-dismissed after 4s. Save failures are transient and users don't need to act on them.
-- **CreateVaultView save location as inline one-liner**: Replaced full section (label + path display + bordered button) with a compact path + "Change" link under the vault name. The warning callout stays visible — it's security-critical and non-dismissable per spec.
+- **Mobile deferred**: Phases 16–19 (Mobile) are skipped for now. Not worth the environment setup overhead. May revisit later.
+- **Personal brand**: "logmoon" — support/donation links are to logmoon's personal support page, not branded as "CredVault donations."
+- **Donation platform**: User is setting up Buy Me a Coffee (or similar) under the logmoon brand. URL not finalized yet — user is handling the payment setup externally before we wire it in.
+- **Distribution channel**: GitHub Releases. Users download `.deb`/`.AppImage`/`.exe`/`.msi` from `github.com/logmoon/credvault/releases`.
+- **Windows cross-compilation**: Will use `cargo-xwin` on this Linux machine to build Windows packages without a Windows VM.
+- **macOS**: Deferred — requires a Mac to build.
 
 ## Problems solved
 
-- (none — straightforward polish pass, no blockers)
+- Investigated Phase 16 (mobile) — determined `arboard` crate is desktop-only (would fail on mobile), `show_in_folder` has no mobile handling, and mobile builds require macOS (iOS) or Android Studio + SDK. Decided to skip.
 
 ## Current state
 
 - `npx tsc --noEmit`: 0 errors
 - `npx vite build`: clean
-- All Phase 15 items complete: fade transitions, error toast, disabled cursors, dialog bg fix, shadow removal, password visibility consistency
-- Phase 14 (Search) completed in prior session
-- Progress tracker needs updating — Phase 14 and 15 both now complete
+- All changes committed (`602dc84`)
+- Phase 15 (UI Polish Pass) complete
+- Tauri CLI 2.11.2 available via npx
+- webkit2gtk installed — Linux builds confirmed possible
+- `cargo-xwin` NOT installed yet — needed for Windows cross-compilation
+- No `.github/` directory, no README, no GitHub repo yet
 
 ## Next session starts with
 
-**Phase 16 — Mobile Tauri Targets.** Add iOS and Android build targets to the Tauri project. Verify the existing UI renders in a mobile WebView without layout breaks. Then Phase 17 (Mobile UI Adaptations) follows.
+1. **User provides support page URL** (they're setting up Buy Me a Coffee externally)
+2. Add "Support logmoon" section to `Settings.tsx` — opens support URL in browser via `open()` from `@tauri-apps/plugin-shell`
+3. Create `.github/FUNDING.yml` with the chosen platform
+4. Create `README.md` — what CredVault is, download links, build from source, support link
+5. Run `npx tauri build` — test Linux packages (`.deb`, `.AppImage`)
+6. Install `cargo-xwin` + MSVC SDK for Windows cross-compilation
+7. Build Windows packages (`.exe`, `.msi`)
+8. Create GitHub repo, push, attach artifacts to a release
 
 ## Open questions
 
-- (none)
+- What is the support page URL? (User is setting this up externally)
+- Which donation platform exactly? (BMC, GitHub Sponsors, Ko-fi, or custom page on their website?)
+- Do they want a license file in the repo? (MIT? AGPL? Something else?)

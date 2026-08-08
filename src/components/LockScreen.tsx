@@ -20,6 +20,7 @@ export function LockScreen() {
   const [mode, setMode] = useState<'loading' | 'unlock' | 'create'>('loading');
   const [vaultPath, setVaultPath] = useState('');
   const [vaultName, setVaultName] = useState('');
+  const [vaultFileExists, setVaultFileExists] = useState<boolean | null>(null);
   const [defaultFolder, setDefaultFolder] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -54,8 +55,13 @@ export function LockScreen() {
 
         const exists = await vaultExists(path);
         if (cancelled) return;
+        setVaultFileExists(exists);
         if (exists) {
           setMode('unlock');
+        } else if (config.vaultPath) {
+          // Vault is configured but file is missing — show unlock with disabled state
+          setMode('unlock');
+          setError('Vault file not found — browse for the vault or create a new one');
         } else {
           setMode('create');
         }
@@ -93,11 +99,16 @@ export function LockScreen() {
         // Vault file is gone — prune it from recents and show a clear error
         const pruned = (config?.recentVaults ?? []).filter(v => v.path !== path);
         updateConfig({ recentVaults: pruned });
-        setError(`Vault file not found: ${path}`);
+        setVaultPath(path);
+        setVaultName(result.vaultName);
+        setVaultFileExists(false);
+        setMode('unlock');
+        setError('Vault file not found — browse for the vault or create a new one');
         return;
       }
       setVaultPath(path);
       setVaultName(result.vaultName);
+      setVaultFileExists(true);
       setMode('unlock');
       setPassword('');
       setError('');
@@ -162,6 +173,7 @@ export function LockScreen() {
           <UnlockView
             vaultPath={vaultPath}
             vaultName={vaultName}
+            vaultFileExists={vaultFileExists}
             config={config}
             password={password}
             error={error}
