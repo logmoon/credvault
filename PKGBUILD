@@ -1,35 +1,43 @@
 # Maintainer: logmoon <amen.benaissa09@gmail.com>
 # Contributor: logmoon <amen.benaissa09@gmail.com>
 
-pkgname=credvault-bin
+pkgname=credvault
 pkgver=0.1.0
 pkgrel=1
 pkgdesc="Local-first, zero-knowledge credential manager — one encrypted vault file, one master password, no accounts, no servers"
 arch=('x86_64')
 url="https://github.com/logmoon/credvault"
 license=('GPL-3.0-or-later')
-source=("CredVault_${pkgver}_amd64.AppImage::https://github.com/logmoon/credvault/releases/download/v${pkgver}/CredVault_${pkgver}_amd64.AppImage")
-sha256sums=('34998b391aa6002499e7f9abc443827f8246cd6c8771e71fa45aae9106941310')
+depends=('webkit2gtk-4.1' 'gtk3')
+makedepends=('rust' 'nodejs' 'npm' 'webkit2gtk-4.1')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/logmoon/credvault/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('PLACEHOLDER')
 
-# The AppImage carries its own bundled GTK stack — no fuse2 needed because we
-# extract at build time instead of mounting. Nothing is stripped: the bundle
-# ships pre-stripped libraries and Arch's strip is unnecessary (and risky) here.
-options=('!strip')
+build() {
+  cd "$srcdir/$pkgname-$pkgver"
+  npm ci
+  npx tauri build --no-bundle
+}
 
 package() {
-  cd "$srcdir"
-  chmod +x "CredVault_${pkgver}_amd64.AppImage"
-  "./CredVault_${pkgver}_amd64.AppImage" --appimage-extract
+  cd "$srcdir/$pkgname-$pkgver"
+  install -Dm755 src-tauri/target/release/credvault "$pkgdir/usr/bin/credvault"
 
-  install -dm755 "$pkgdir/opt/credvault"
-  cp -a squashfs-root/. "$pkgdir/opt/credvault/"
+  install -Dm644 src-tauri/icons/32x32.png \
+    "$pkgdir/usr/share/icons/hicolor/32x32/apps/credvault.png"
+  install -Dm644 src-tauri/icons/128x128.png \
+    "$pkgdir/usr/share/icons/hicolor/128x128/apps/credvault.png"
+  install -Dm644 src-tauri/icons/128x128@2x.png \
+    "$pkgdir/usr/share/icons/hicolor/128x128@2/apps/credvault.png"
 
-  install -dm755 "$pkgdir/usr/bin"
-  ln -s /opt/credvault/AppRun "$pkgdir/usr/bin/credvault"
-
-  install -Dm644 squashfs-root/usr/share/applications/CredVault.desktop \
-    "$pkgdir/usr/share/applications/CredVault.desktop"
-
-  install -dm755 "$pkgdir/usr/share/icons/hicolor"
-  cp -a squashfs-root/usr/share/icons/hicolor/. "$pkgdir/usr/share/icons/hicolor/"
+  install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/credvault.desktop" <<'EOF'
+[Desktop Entry]
+Categories=
+Exec=credvault
+StartupWMClass=credvault
+Icon=credvault
+Name=CredVault
+Terminal=false
+Type=Application
+EOF
 }

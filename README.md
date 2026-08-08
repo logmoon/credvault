@@ -21,8 +21,10 @@ CredVault keeps your credentials in a single encrypted vault file on your own di
 
 Installers are attached to each [GitHub Release](https://github.com/logmoon/credvault/releases):
 
-- **Linux**: `.deb` (Debian/Ubuntu) and `.AppImage`
+- **Linux**: `.deb` (Debian/Ubuntu), `.rpm` (Fedora/openSUSE), and `.AppImage`
 - **Windows**: `.msi` and NSIS `.exe` installer
+
+Linux packages require glibc 2.35+ (Ubuntu 22.04+, Debian 12+, Fedora 37+).
 
 ### Arch Linux
 
@@ -32,7 +34,7 @@ cd credvault
 makepkg -si
 ```
 
-Installs `credvault-bin` with a launcher entry and `/usr/bin/credvault`. While the repository is private, download the AppImage from the release page and place it next to the PKGBUILD before running `makepkg -si`.
+Compiles and installs `credvault` from source with a launcher entry and `/usr/bin/credvault`. Once published to the AUR: `yay -S credvault`.
 
 ## Build from Source
 
