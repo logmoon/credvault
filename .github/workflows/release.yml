@@ -1,12 +1,47 @@
-name: Release
+name: CI/CD
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: ['*']
+    tags: ['v*']
+  pull_request:
 
 jobs:
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: setup node
+        uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: install dependencies (ubuntu only)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev
+
+      - name: install frontend dependencies
+        run: npm ci
+
+      - name: typecheck
+        run: npx tsc --noEmit
+
+      - name: lint
+        run: cargo clippy -- -D warnings
+        working-directory: src-tauri
+
+      - name: test
+        run: cargo test
+        working-directory: src-tauri
+
   publish-tauri:
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
     strategy:
@@ -16,14 +51,14 @@ jobs:
           - platform: ubuntu-22.04
             args: '--bundles deb,appimage'
           - platform: windows-latest
-            args: '--bundles msi,nsi'
+            args: '--bundles msi,nsis'
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: lts/*
 
