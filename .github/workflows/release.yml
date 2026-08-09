@@ -111,12 +111,24 @@ jobs:
           echo "pkgver=$tagver" >> "$GITHUB_OUTPUT"
           echo "pkgrel=$new_pkgrel" >> "$GITHUB_OUTPUT"
 
+      # REASON: GITHUB_TOKEN is audience-scoped to api.github.com and is rejected
+      # by codeload (404) — the archive must be fetched with a repo PAT when the
+      # repo is private, or anonymously once public. The gzip check hard-fails on
+      # any non-archive response so a 404 body can never be hashed and committed.
       - name: Compute source tarball sha256
         id: hash
         run: |
-          curl -sSL --location-trusted -o source.tar.gz \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          if [ -n "${{ secrets.GH_PKG_TOKEN }}" ]; then
+            AUTH_HEADER=(-H "Authorization: token ${{ secrets.GH_PKG_TOKEN }}")
+          else
+            AUTH_HEADER=()
+          fi
+          curl -sSL --location-trusted "${AUTH_HEADER[@]}" -o source.tar.gz \
             "https://github.com/logmoon/credvault/archive/refs/tags/${{ github.ref_name }}.tar.gz"
+          if ! file source.tar.gz | grep -q "gzip compressed"; then
+            echo "::error::Downloaded source is not a gzip archive (private repo without GH_PKG_TOKEN secret?)"
+            exit 1
+          fi
           echo "sha256=$(sha256sum source.tar.gz | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Update PKGBUILD checksum
