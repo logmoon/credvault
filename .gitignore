@@ -29,5 +29,5 @@ Thumbs.db
 # Arch packaging
 *.AppImage
 *.pkg.tar.zst
-src/
-pkg/
+packaging/arch/src/
+packaging/arch/pkg/

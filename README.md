@@ -30,7 +30,7 @@ Linux packages require glibc 2.35+ (Ubuntu 22.04+, Debian 12+, Fedora 37+).
 
 ```bash
 git clone https://github.com/logmoon/credvault.git
-cd credvault
+cd credvault/packaging/arch
 makepkg -si
 ```
 
