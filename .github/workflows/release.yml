@@ -95,6 +95,22 @@ jobs:
         with:
           ref: master
 
+      - name: Sync pkgver and pkgrel from tag
+        id: sync
+        run: |
+          tagver="${GITHUB_REF_NAME#v}"
+          current_pkgver=$(sed -n 's/^pkgver=//p' packaging/arch/PKGBUILD)
+          current_pkgrel=$(sed -n 's/^pkgrel=//p' packaging/arch/PKGBUILD)
+          if [ "$current_pkgver" = "$tagver" ]; then
+            new_pkgrel=$((current_pkgrel + 1))
+          else
+            new_pkgrel=1
+          fi
+          sed -i "s/^pkgver=.*/pkgver=$tagver/" packaging/arch/PKGBUILD
+          sed -i "s/^pkgrel=.*/pkgrel=$new_pkgrel/" packaging/arch/PKGBUILD
+          echo "pkgver=$tagver" >> "$GITHUB_OUTPUT"
+          echo "pkgrel=$new_pkgrel" >> "$GITHUB_OUTPUT"
+
       - name: Compute source tarball sha256
         id: hash
         run: |
@@ -113,8 +129,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add packaging/arch/PKGBUILD
           if git diff --cached --quiet; then
-            echo "Checksum unchanged — nothing to commit"
+            echo "PKGBUILD unchanged — nothing to commit"
             exit 0
           fi
-          git commit -m "chore(arch): update PKGBUILD checksum for ${{ github.ref_name }}"
+          git commit -m "chore(arch): sync PKGBUILD to ${{ github.ref_name }} (pkgrel ${{ steps.sync.outputs.pkgrel }})"
           git push origin master
