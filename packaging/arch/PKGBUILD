@@ -11,7 +11,7 @@ license=('GPL-3.0-or-later')
 depends=('webkit2gtk-4.1' 'gtk3')
 makedepends=('rust' 'nodejs' 'npm' 'webkit2gtk-4.1')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/logmoon/credvault/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('43d9e634a93cbbdbed23644fdff37f7e5437a5d2ff5798f8e15b0df7be840261')
+sha256sums=('0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5')
 
 prepare() {
   # GitHub archive roots are named logmoon-credvault-<commit>; normalize so
