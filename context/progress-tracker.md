@@ -2,9 +2,9 @@
 
 ## Current Status
 
-**Phase:** Phase 1 — Sync + Polish
-**Last completed:** 15 UI Polish Pass
-**Next:** 16 Mobile Tauri Targets
+**Phase:** Ship + Release — pipeline live, v0.1.0 draft release built, Arch package shipped
+**Last completed:** Arch source-build PKGBUILD validated (makepkg -si works)
+**Next:** Publish v0.1.0 draft release / AUR submission (blocked on repo going public)
 
 ---
 
@@ -31,12 +31,24 @@
 - [x] 14 Search
 - [x] 15 UI Polish Pass
 
-### Phase 2 — Mobile
+### Phase 2 — Mobile (deferred)
 
 - [ ] 16 Mobile Tauri Targets
 - [ ] 17 Mobile UI Adaptations
 - [ ] 18 Mobile Auto-Lock on Background
 - [ ] 19 Cross-Device Vault Compatibility Test
+
+### Phase 3 — Ship + Release
+
+- [x] GPL-3.0 LICENSE + README
+- [x] GitHub Actions CI/CD pipeline (check gates release builds on v* tags)
+- [x] Linux: .deb, .AppImage, .rpm / Windows: .msi, NSIS .exe
+- [x] Private repo logmoon/credvault with draft release v0.1.0 (5 artifacts)
+- [x] Arch PKGBUILD — native source build (`packaging/arch/`), validated via `makepkg -si`
+- [ ] Publish draft release v0.1.0
+- [ ] AUR submission (repo must be public first)
+- [ ] Support section in Settings (blocked on support URL)
+
 
 ---
 
