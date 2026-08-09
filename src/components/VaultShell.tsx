@@ -5,6 +5,7 @@ import { open } from '@tauri-apps/plugin-shell';
 import { useVault } from '../context/VaultContext';
 import { useClipboard } from '../hooks/useClipboard';
 import { useAutoLock } from '../hooks/useAutoLock';
+import { useTitlebarDblClick } from '../hooks/useTitlebarDblClick';
 import { isValidUrl } from '../lib/url';
 import { SearchBar } from './SearchBar';
 import { EntryList } from './EntryList';
@@ -12,6 +13,7 @@ import { AddEntry } from './AddEntry';
 import { EntryDetail } from './EntryDetail';
 import { Settings } from './Settings';
 import { ClipboardToast } from './ClipboardToast';
+import { WindowControls } from './WindowControls';
 
 type VaultShellProps = {
   hasConflict: boolean;
@@ -30,6 +32,8 @@ export function VaultShell({ hasConflict: hasConflictFromSync, conflictPaths, ch
   const [resolveOpen, setResolveOpen] = useState(false);
   const [panelKey, setPanelKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleTitlebarDblClick = useTitlebarDblClick();
 
   const { showCopiedToast, showClearedToast, timeoutSecs, copyToClipboard } = useClipboard(
     config?.clipboardTimeoutMs ?? 30_000,
@@ -62,15 +66,19 @@ export function VaultShell({ hasConflict: hasConflictFromSync, conflictPaths, ch
     }
   }, []);
 
-  const handleSelect = useCallback((id: string) => {
-    setSelectedEntryId(id);
-    setRightPanel('edit');
-  }, []);
-
   const handleDeselect = useCallback(() => {
     setSelectedEntryId(null);
     setRightPanel(null);
   }, []);
+
+  const handleSelect = useCallback((id: string) => {
+    if (id === selectedEntryId) {
+      handleDeselect();
+      return;
+    }
+    setSelectedEntryId(id);
+    setRightPanel('edit');
+  }, [selectedEntryId, handleDeselect]);
 
   const handleAdd = useCallback(() => {
     setPanelKey(k => k + 1);
@@ -103,9 +111,14 @@ export function VaultShell({ hasConflict: hasConflictFromSync, conflictPaths, ch
   }, [entryList, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-surface-window flex flex-col">
-      {/* Header — strong bottom border to separate from content */}
-      <header className="bg-surface border-b border-border-strong flex items-center justify-between px-6 py-3">
+    <div className="h-screen bg-surface-window flex flex-col">
+      {/* Header — strong bottom border to separate from content. Doubles as the
+          window titlebar (decorations: false): draggable, dblclick to maximize */}
+      <header
+        data-tauri-drag-region
+        onDoubleClick={handleTitlebarDblClick}
+        className="bg-surface border-b border-border-strong flex items-center justify-between pl-6 pr-2 py-3 select-none"
+      >
         <div className="flex items-center gap-2">
           <span className="text-sm text-text-secondary font-medium">CredVault</span>
         </div>
@@ -126,6 +139,8 @@ export function VaultShell({ hasConflict: hasConflictFromSync, conflictPaths, ch
           >
             <Lock size={16} />
           </button>
+          <div className="w-px h-4 bg-border-strong mx-1" aria-hidden="true" />
+          <WindowControls />
         </div>
       </header>
 

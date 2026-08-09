@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useVault } from '../context/VaultContext';
+import { useTitlebarDblClick } from '../hooks/useTitlebarDblClick';
 import { getDefaultVaultPath, vaultExists, createVault, unlockVault, switchVault, sanitizeVaultName, pickVaultPath } from '../lib/ipc';
 import { UnlockView } from './UnlockView';
 import { CreateVaultView } from './CreateVaultView';
+import { WindowControls } from './WindowControls';
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -25,6 +27,8 @@ export function LockScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const handleTitlebarDblClick = useTitlebarDblClick();
 
   useEffect(() => {
     if (!config) return;
@@ -158,9 +162,19 @@ export function LockScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-window flex flex-col items-center justify-center px-6"
+    <div className="min-h-screen bg-surface-window flex flex-col items-center justify-center px-6 relative"
       style={{ paddingTop: '5vh' }}
     >
+      {/* Invisible drag strip — window has no native titlebar (decorations: false).
+          Window controls sit at its right edge, clickable despite the drag region
+          (Tauri skips interactive elements). */}
+      <div
+        className="absolute top-0 left-0 right-0 flex items-center justify-end pr-2 py-3"
+        data-tauri-drag-region
+        onDoubleClick={handleTitlebarDblClick}
+      >
+        <WindowControls />
+      </div>
       <div className="w-[360px]">
         <h1 className="text-sm text-text-secondary font-medium text-center mb-1">
           CredVault
