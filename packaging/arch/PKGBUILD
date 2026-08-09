@@ -3,7 +3,7 @@
 
 pkgname=credvault
 pkgver=0.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Local-first, zero-knowledge credential manager — one encrypted vault file, one master password, no accounts, no servers"
 arch=('x86_64')
 url="https://github.com/logmoon/credvault"
