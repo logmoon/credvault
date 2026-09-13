@@ -2,8 +2,8 @@
 # Contributor: logmoon <amen.benaissa09@gmail.com>
 
 pkgname=credvault
-pkgver=0.1.0
-pkgrel=2
+pkgver=0.1.1
+pkgrel=1
 pkgdesc="Local-first, zero-knowledge credential manager — one encrypted vault file, one master password, no accounts, no servers"
 arch=('x86_64')
 url="https://github.com/logmoon/credvault"
@@ -11,7 +11,7 @@ license=('GPL-3.0-or-later')
 depends=('webkit2gtk-4.1' 'gtk3')
 makedepends=('rust' 'nodejs' 'npm' 'webkit2gtk-4.1')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/logmoon/credvault/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('3865b43ddb14c65d31bb32520dccba30824ecd6d761be3aabd1988356c278884')
+sha256sums=('2c9d9ccb5a4c4a66a750c9a3aa9924cc14b6823a4be249f59f501439aff597c9')
 
 prepare() {
   # Codeload tag archives root as credvault-<version>; API archives root as
