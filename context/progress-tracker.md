@@ -2,9 +2,9 @@
 
 ## Current Status
 
-**Phase:** Ship + Release — pipeline live, v0.1.0 draft release built, Arch package shipped
-**Last completed:** Arch source-build PKGBUILD validated (makepkg -si works)
-**Next:** Publish v0.1.0 draft release / AUR submission (blocked on repo going public)
+**Phase:** Ship + Release — post-testing fixes done, v0.1.1 release build triggered
+**Last completed:** Three post-testing fixes (window controls pinned, sidebar widened, search autofocus) — user-confirmed
+**Next:** CI builds draft release v0.1.1 (5 artifacts) — then publish / AUR submission (blocked on repo going public)
 
 ---
 
@@ -45,9 +45,17 @@
 - [x] Linux: .deb, .AppImage, .rpm / Windows: .msi, NSIS .exe
 - [x] Private repo logmoon/credvault with draft release v0.1.0 (5 artifacts)
 - [x] Arch PKGBUILD — native source build (`packaging/arch/`), validated via `makepkg -si`
-- [ ] Publish draft release v0.1.0
+- [ ] Publish draft release v0.1.1
 - [ ] AUR submission (repo must be public first)
 - [ ] Support section in Settings (blocked on support URL)
+
+### Post-Testing Fixes (2026-09-13)
+
+- [x] Window controls stay pinned right at any window width (`min-w-0` + `truncate` on title, `shrink-0` on controls group). Root cause: `minWidth: 720` is a WM hint and is ignored by sway tiling — fixed in CSS, not config.
+- [x] Sidebar widened 280px → 320px
+- [x] Search bar autofocuses on every vault unlock (`autoFocus` on the SearchBar input)
+- [x] ui-rules.md + ui-registry.md synced (sidebar width, header shrink behavior, autofocus note, WindowControls entry)
+- [x] Version bumped 0.1.0 → 0.1.1; tag v0.1.1 pushed — CI builds draft release + auto-syncs Arch PKGBUILD
 
 
 ---
@@ -78,7 +86,7 @@
 
 ## Notes
 
-- **06 — Two-column layout from start**: VaultShell establishes the 280px sidebar + flex right panel immediately, avoiding a layout refactor when EntryDetail/AddEntry arrive. Right column shows window background when nothing is selected — no placeholder.
+- **06 — Two-column layout from start**: VaultShell establishes a fixed sidebar (currently 320px) + flex right panel immediately, avoiding a layout refactor when EntryDetail/AddEntry arrive. Right column shows window background when nothing is selected — no placeholder.
 - **06 — Full-width header**: Header bar spans the full window width, not just the sidebar. Sidebar and right panel sit below it.
 - **06 — Copy icons**: `User` icon for copy-username, `Key` icon for copy-password — visually distinct without text labels.
 - **06 — `accent.muted` bumped to 30% opacity**: Changed from `#E8600A33` to `#E8600A4D` for more visible selected row tint.
@@ -89,3 +97,6 @@
 - **07 — PasswordGenerator toggle pattern**: Header always visible; clicking toggles panel. No separate collapse button.
 - **07 — Selected row style**: `bg-surface-raised` + `border-l-2 border-accent`. Replaced accent-tint approach after 4 opacity iterations.
 - **07 — `accent.muted` removed**: No longer used. Selected row uses neutral raised bg + accent border instead.
+- **09-13 — Keep `minWidth: 720` but don't rely on it**: It works for floating windows but sway/tiling compositors ignore WM size hints. The VaultShell header must survive arbitrarily narrow widths in pure CSS; the title truncates, controls never shrink.
+- **09-13 — Search autofocus is mount-scoped**: `autoFocus` on the SearchBar input fires on every `VaultShell` mount (= every unlock). Deliberately not re-focusing after closing panels/dialogs — no focus stealing.
+- **09-13 — New tag v0.1.1, not re-tagged v0.1.0**: The v0.1.0 tag is frozen (PKGBUILD sha256 for the published source tarball depends on it). Post-release fixes go out as a patch bump; CI's `update-pkgbuild` job syncs pkgver/pkgrel from the tag automatically.

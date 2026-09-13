@@ -142,18 +142,18 @@ Last updated: 2026-06-06
 ### VaultShell
 
 File: `src/components/VaultShell.tsx`
-Last updated: 2026-06-07
+Last updated: 2026-09-13
 
 | Property | Class |
 |---|---|
 | Page background | `bg-surface-window` |
 | Header background | `bg-surface` |
 | Header border | `border-b border-border-strong` |
-| Header padding | `px-6 py-3` |
+| Header padding | `pl-6 pr-2 py-3` |
 | App name text | `text-sm text-text-secondary font-medium` |
 | Header icon button | `p-2 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary` with `aria-label` + `title` |
 | Header icon size | `size={16}` (lucide-react — Settings, Lock icons) |
-| Sidebar width | `w-[280px]` |
+| Sidebar width | `w-[320px]` |
 | Sidebar background | `bg-surface` |
 | Sidebar separator | `border-r border-border-strong` |
 | Sidebar flex | `shrink-0 flex flex-col min-h-0` |
@@ -170,6 +170,24 @@ Last updated: 2026-06-07
 - FAB is hidden when AddEntry is open (`rightPanel === 'add'`).
 - FAB has no shadow — follows flat-surface design rule.
 - Separators use `border-border-strong` (15% white) — strongest border level for structural divisions.
+- Header title container uses `min-w-0` + `truncate` on the app name and `shrink-0` on the controls group — the window controls stay pinned right at any window width. `minWidth: 720` is a WM size hint only and is ignored by tiling compositors (sway), so the header must survive arbitrarily narrow widths.
+
+### WindowControls
+
+File: `src/components/WindowControls.tsx`
+Last updated: 2026-09-13
+
+| Property | Class |
+|---|---|
+| Container | `flex items-center gap-1 shrink-0` |
+| Icon button | `p-2 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-primary` |
+| Close button (hover) | `hover:bg-status-error hover:text-white` — only button with a destructive hover |
+| Icon size | `size={16}` (Minus, X), `size={13}` (Square) |
+
+**Pattern notes:**
+- Custom titlebar controls for the frameless window (`decorations: false`); used in both `VaultShell`'s header and the `LockScreen` drag strip.
+- `shrink-0` on the container is load-bearing: it keeps minimize/maximize/close visible when the window is narrowed below the header's content width. Never remove it.
+- Close uses `status-error` hover as the destructive affordance — matches the destructive button pattern in `EntryDetail`/`ConfirmDialog`.
 
 ### PasswordGenerator
 
@@ -492,7 +510,7 @@ Last updated: 2026-06-07
 ### SearchBar
 
 File: `src/components/SearchBar.tsx`
-Last updated: 2026-06-11
+Last updated: 2026-09-13
 
 | Property | Class |
 |---|---|
@@ -514,3 +532,4 @@ Last updated: 2026-06-11
 - Clear button uses `p-0.5` (smaller than standard `p-2`) because the icon is size 14 and the hit target is already adequate inside the input.
 - Matches the standard input styling used in EntryForm and CreateVaultView (same bg-surface, border-border-subtle, rounded-md, py-2).
 - No form or submit — purely a controlled input with `onChange` handler.
+- Input uses `autoFocus` — focus lands on search on every VaultShell mount (i.e. every unlock), so the user can type to filter instantly. Does not affect LockScreen.

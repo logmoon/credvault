@@ -119,10 +119,10 @@ export function VaultShell({ hasConflict: hasConflictFromSync, conflictPaths, ch
         onDoubleClick={handleTitlebarDblClick}
         className="bg-surface border-b border-border-strong flex items-center justify-between pl-6 pr-2 py-3 select-none"
       >
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-text-secondary font-medium">CredVault</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm text-text-secondary font-medium truncate">CredVault</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => setSettingsOpen(true)}
             className="p-2 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-secondary"
@@ -174,7 +174,7 @@ export function VaultShell({ hasConflict: hasConflictFromSync, conflictPaths, ch
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — strong right border to separate from right panel */}
         <div
-          className="w-[280px] shrink-0 bg-surface border-r border-border-strong flex flex-col min-h-0"
+          className="w-[320px] shrink-0 bg-surface border-r border-border-strong flex flex-col min-h-0"
           onClick={handleDeselect}
         >
           <SearchBar value={searchQuery} onChange={setSearchQuery} />

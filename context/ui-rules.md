@@ -3,7 +3,7 @@
 ## Layout
 
 - **Window:** No maximum width — the app fills the Tauri window. Minimum window size: 720px × 500px desktop.
-- **Desktop layout:** Two-column. Left column: fixed 280px sidebar containing `SearchBar` and `EntryList`. Right column: flexible, fills remaining space — shows `EntryDetail`, `AddEntry`, or `Settings` depending on state. When nothing is selected, the right column is empty (not a placeholder — just the window background).
+- **Desktop layout:** Two-column. Left column: fixed 320px sidebar containing `SearchBar` and `EntryList`. Right column: flexible, fills remaining space — shows `EntryDetail`, `AddEntry`, or `Settings` depending on state. When nothing is selected, the right column is empty (not a placeholder — just the window background).
 - **Mobile layout:** Single column, full screen. Bottom tab bar with three tabs: Vault (entry list), Add, Settings. Navigation between entry list and entry detail is a full-screen push.
 - **Page padding:** `24px` on all sides for desktop content areas. `16px` on mobile.
 - **Section gap:** `20px` between distinct content sections within a screen.

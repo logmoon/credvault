@@ -21,7 +21,7 @@ export function WindowControls() {
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 shrink-0">
       <button
         onClick={handleMinimize}
         className="p-2 rounded hover:bg-surface-hover transition-colors text-text-muted hover:text-text-primary"

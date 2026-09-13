@@ -17,6 +17,7 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
           type="text"
           value={value}
           onChange={e => onChange(e.target.value)}
+          autoFocus
           placeholder="Search entries..."
           className="w-full bg-surface border border-border-subtle rounded-md pl-9 pr-8 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 appearance-none"
         />
